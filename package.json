@@ -1,0 +1,14 @@
+{
+  "name": "knowledge-asset-pipeline-v0",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "demo": "node src/cli.js ingest --store demo-store --input fixtures/mixed.txt --annotations fixtures/mixed.annotations.json",
+    "workflow-demo": "node src/workflow-cli.js demo --store examples/mixed-run --input fixtures/mixed.txt --annotations fixtures/mixed.annotations.json"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1"
+  }
+}

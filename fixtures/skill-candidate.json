@@ -1,0 +1,7 @@
+{
+  "name": "直播开场方案生成器（仅门禁样例）",
+  "supporting_claim_ids": ["claim_example_only"],
+  "verification": {"source_sufficiency": true, "executability": true, "task_utility": true},
+  "promotion": {"independent_intent": true, "independent_contract": true, "independent_run": true, "independent_reuse": true, "independent_eval": true},
+  "ria": {"R": "原文与锚点", "I": "保留语境的解释", "A1": "已核实案例或标明合成演练", "A2": "独立触发条件", "E": "输入、步骤、输出和完成标准", "B": "适用边界及禁用情形"}
+}

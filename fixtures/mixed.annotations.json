@@ -1,0 +1,11 @@
+{
+  "parts": [
+    {"quote":"直播前五分钟先讲清楚主题，不要急着卖。","type":"knowledge","parent_tag":"直播","child_tag":"开场","theme":"直播开场策略","central_question":"开场时应先解决什么问题？","inclusion":"讨论开场阶段的任务与顺序","exclusion":"不含尾场和售后策略"},
+    {"quote":"下周直播测试“价值转译”。","type":"todo","parent_tag":"直播","child_tag":"实验"},
+    {"quote":"价值转译","type":"idea","parent_tag":"直播","child_tag":"概念"},
+    {"quote":"这句话可以做开场文案：先让用户知道今天能得到什么。","type":"copy","parent_tag":"直播","child_tag":"开场文案"}
+  ],
+  "proposals": [
+    {"text":"直播开场应先说明本场主题，再考虑销售；此结论尚需实测。","claim_parts":[0],"target":"canonical_knowledge"}
+  ]
+}

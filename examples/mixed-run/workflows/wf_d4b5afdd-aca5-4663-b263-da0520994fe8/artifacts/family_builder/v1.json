@@ -1,0 +1,27 @@
+{
+  "artifact_id": "artifact_1682414fbefd942c1551",
+  "run_id": "wf_d4b5afdd-aca5-4663-b263-da0520994fe8",
+  "stage": "family_builder",
+  "version": 1,
+  "producer": "fixture_adapter",
+  "created_at": "2026-09-15T09:53:53.030Z",
+  "inputs": [
+    {
+      "stage": "claims",
+      "artifact_id": "artifact_aba4df624008d8695c4f",
+      "sha256": "e73ce95d3f4459b1e48e0b3e1d4ed09ae298d43ac545acd8a46280b8da21b556"
+    }
+  ],
+  "data": {
+    "families": [
+      {
+        "id": "family_62019e5905d950b6",
+        "key": "直播前五分钟先讲清楚主题，不要急着卖。",
+        "claim_ids": [
+          "claim_4172931347899d80"
+        ],
+        "status": "exact_group"
+      }
+    ]
+  }
+}

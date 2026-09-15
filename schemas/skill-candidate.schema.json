@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/kb/skill-candidate.schema.json",
+  "title": "本项目适配层：Skill 候选门禁输入",
+  "type": "object", "required": ["supporting_claim_ids", "verification", "promotion", "ria"],
+  "properties": {
+    "name": {"type": "string"},
+    "supporting_claim_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "verification": {"type": "object", "required": ["source_sufficiency", "executability", "task_utility"],
+      "properties": {"source_sufficiency": {"type": "boolean"}, "executability": {"type": "boolean"}, "task_utility": {"type": "boolean"}},
+      "additionalProperties": false},
+    "promotion": {"type": "object", "required": ["independent_intent", "independent_contract", "independent_run", "independent_reuse", "independent_eval"],
+      "properties": {"independent_intent": {"type": "boolean"}, "independent_contract": {"type": "boolean"}, "independent_run": {"type": "boolean"},
+        "independent_reuse": {"type": "boolean"}, "independent_eval": {"type": "boolean"}}, "additionalProperties": false},
+    "ria": {"type": "object", "required": ["R", "I", "A1", "A2", "E", "B"],
+      "properties": {"R": {"type": "string", "minLength": 1}, "I": {"type": "string", "minLength": 1},
+        "A1": {"type": "string", "minLength": 1}, "A2": {"type": "string", "minLength": 1},
+        "E": {"type": "string", "minLength": 1}, "B": {"type": "string", "minLength": 1}}, "additionalProperties": false}
+  },
+  "additionalProperties": false
+}

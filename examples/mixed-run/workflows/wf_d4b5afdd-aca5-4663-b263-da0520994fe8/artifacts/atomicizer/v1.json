@@ -1,0 +1,32 @@
+{
+  "artifact_id": "artifact_003822ee0c11a5672e2f",
+  "run_id": "wf_d4b5afdd-aca5-4663-b263-da0520994fe8",
+  "stage": "atomicizer",
+  "version": 1,
+  "producer": "fixture_adapter",
+  "created_at": "2026-09-15T09:53:53.020Z",
+  "inputs": [
+    {
+      "stage": "router",
+      "artifact_id": "artifact_65802b76e06111fc014c",
+      "sha256": "626675b9c8d53af0a1c04e840994ca8c4c8a2721dbc51bfc16590cf5051ee84d"
+    }
+  ],
+  "data": {
+    "atoms": [
+      {
+        "id": "atom_b4969ca313628560",
+        "asset_id": "asset_e6504ab33cb5fd50",
+        "raw_id": "raw_82192282f5968b58",
+        "anchor": {
+          "start": 0,
+          "end": 19,
+          "quote": "直播前五分钟先讲清楚主题，不要急着卖。",
+          "offset_unit": "UTF-16"
+        },
+        "statement": "直播前五分钟先讲清楚主题，不要急着卖。",
+        "status": "provisional"
+      }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/kb/annotations.schema.json",
+  "title": "本项目适配层：语义拆件建议契约",
+  "type": "object",
+  "required": ["parts"],
+  "additionalProperties": false,
+  "properties": {
+    "parts": {"type": "array", "items": {"$ref": "#/$defs/part"}},
+    "relations": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
+    "proposals": {"type": "array", "items": {"$ref": "#/$defs/proposal"}}
+  },
+  "$defs": {
+    "part": {
+      "type": "object", "required": ["quote", "type"], "additionalProperties": false,
+      "properties": {
+        "quote": {"type": "string", "minLength": 1}, "occurrence": {"type": "integer", "minimum": 0},
+        "type": {"enum": ["knowledge", "case", "copy", "idea", "todo", "project", "external", "unorganized"]},
+        "parent_tag": {"type": "string"}, "child_tag": {"type": "string"},
+        "family": {"type": "string", "minLength": 1}, "theme": {"type": "string", "minLength": 1},
+        "central_question": {"type": "string"}, "inclusion": {"type": "string"}, "exclusion": {"type": "string"},
+        "source_status": {"enum": ["explicit", "attributed", "editor_inference", "visual_unverified"]}
+      }
+    },
+    "relation": {
+      "type": "object", "required": ["from", "to", "type"], "additionalProperties": false,
+      "properties": {"from": {"type": "integer", "minimum": 0}, "to": {"type": "integer", "minimum": 0},
+        "type": {"enum": ["REPEATS", "REFINES", "EXTENDS", "CONTRADICTS", "RETRACTS", "ORIGIN", "APPLICATION"]},
+        "rationale": {"type": "string"}}
+    },
+    "proposal": {
+      "type": "object", "required": ["text", "claim_parts"], "additionalProperties": false,
+      "properties": {"text": {"type": "string", "minLength": 1}, "target": {"enum": ["canonical_knowledge", "asset_revision", "skill_candidate"]},
+        "claim_parts": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 0}},
+        "conflict_claim_parts": {"type": "array", "items": {"type": "integer", "minimum": 0}}}
+    }
+  }
+}

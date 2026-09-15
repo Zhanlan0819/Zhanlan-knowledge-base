@@ -1,0 +1,112 @@
+{
+  "schema_version": "0.2.0",
+  "run_id": "wf_d4b5afdd-aca5-4663-b263-da0520994fe8",
+  "raw_id": "raw_82192282f5968b58",
+  "suggestion_run_id": "run_64c380d8f6d5f6f8",
+  "status": "running",
+  "current_stage": "atomicizer",
+  "stages": {
+    "intake": {
+      "status": "completed",
+      "version": 1,
+      "artifact_id": "artifact_0b39c3d090f2389d0b5b",
+      "sha256": "78e99d298c289bc877da23a48962cadc2a4881205b80a2cf6ca85c10608bfdca",
+      "error": null
+    },
+    "router": {
+      "status": "completed",
+      "version": 1,
+      "artifact_id": "artifact_65802b76e06111fc014c",
+      "sha256": "626675b9c8d53af0a1c04e840994ca8c4c8a2721dbc51bfc16590cf5051ee84d",
+      "error": null
+    },
+    "atomicizer": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "claims": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "family_builder": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "theme_builder": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "reconciler": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "distiller": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "proposal": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "canonical": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "skill_candidate": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "skill_builder": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "evaluator": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    },
+    "skill_publish": {
+      "status": "not_started",
+      "version": 0,
+      "artifact_id": null,
+      "sha256": null,
+      "error": null
+    }
+  },
+  "checkpoints": {},
+  "decisions": [],
+  "created_at": "2026-09-15T09:53:53.005Z",
+  "updated_at": "2026-09-15T09:53:53.015Z"
+}

@@ -1,0 +1,133 @@
+{
+  "id": "run_64c380d8f6d5f6f8",
+  "schema_version": "0.1.0",
+  "raw_id": "raw_82192282f5968b58",
+  "assets": [
+    {
+      "id": "asset_e6504ab33cb5fd50",
+      "raw_id": "raw_82192282f5968b58",
+      "type": "knowledge",
+      "anchor": {
+        "start": 0,
+        "end": 19,
+        "quote": "直播前五分钟先讲清楚主题，不要急着卖。",
+        "offset_unit": "UTF-16"
+      },
+      "parent_tag": "直播",
+      "child_tag": "开场",
+      "status": "provisional"
+    },
+    {
+      "id": "asset_5085194ba68f10d5",
+      "raw_id": "raw_82192282f5968b58",
+      "type": "todo",
+      "anchor": {
+        "start": 19,
+        "end": 32,
+        "quote": "下周直播测试“价值转译”。",
+        "offset_unit": "UTF-16"
+      },
+      "parent_tag": "直播",
+      "child_tag": "实验",
+      "status": "provisional"
+    },
+    {
+      "id": "asset_f4a71bda00014047",
+      "raw_id": "raw_82192282f5968b58",
+      "type": "idea",
+      "anchor": {
+        "start": 26,
+        "end": 30,
+        "quote": "价值转译",
+        "offset_unit": "UTF-16"
+      },
+      "parent_tag": "直播",
+      "child_tag": "概念",
+      "status": "provisional"
+    },
+    {
+      "id": "asset_599aca5c5af37b24",
+      "raw_id": "raw_82192282f5968b58",
+      "type": "copy",
+      "anchor": {
+        "start": 32,
+        "end": 57,
+        "quote": "这句话可以做开场文案：先让用户知道今天能得到什么。",
+        "offset_unit": "UTF-16"
+      },
+      "parent_tag": "直播",
+      "child_tag": "开场文案",
+      "status": "provisional"
+    }
+  ],
+  "atoms": [
+    {
+      "id": "atom_b4969ca313628560",
+      "asset_id": "asset_e6504ab33cb5fd50",
+      "raw_id": "raw_82192282f5968b58",
+      "anchor": {
+        "start": 0,
+        "end": 19,
+        "quote": "直播前五分钟先讲清楚主题，不要急着卖。",
+        "offset_unit": "UTF-16"
+      },
+      "statement": "直播前五分钟先讲清楚主题，不要急着卖。",
+      "status": "provisional"
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim_4172931347899d80",
+      "atom_id": "atom_b4969ca313628560",
+      "raw_id": "raw_82192282f5968b58",
+      "anchor": {
+        "start": 0,
+        "end": 19,
+        "quote": "直播前五分钟先讲清楚主题，不要急着卖。",
+        "offset_unit": "UTF-16"
+      },
+      "statement": "直播前五分钟先讲清楚主题，不要急着卖。",
+      "source_status": "explicit",
+      "evidence_status": "anchor_verified"
+    }
+  ],
+  "families": [
+    {
+      "id": "family_62019e5905d950b6",
+      "key": "直播前五分钟先讲清楚主题，不要急着卖。",
+      "claim_ids": [
+        "claim_4172931347899d80"
+      ],
+      "status": "exact_group"
+    }
+  ],
+  "themes": [
+    {
+      "id": "theme_4cf7458a466bdfba",
+      "name": "直播开场策略",
+      "central_question": "开场时应先解决什么问题？",
+      "inclusion": "讨论开场阶段的任务与顺序",
+      "exclusion": "不含尾场和售后策略",
+      "family_ids": [
+        "family_62019e5905d950b6"
+      ],
+      "status": "suggested"
+    }
+  ],
+  "relations": [],
+  "proposals": [
+    {
+      "id": "proposal_d73a3a07dd80e96f",
+      "target": "canonical_knowledge",
+      "text": "直播开场应先说明本场主题，再考虑销售；此结论尚需实测。",
+      "supporting_claim_ids": [
+        "claim_4172931347899d80"
+      ],
+      "status": "pending_human_review",
+      "conflict_claim_ids": []
+    }
+  ],
+  "canonical": [],
+  "formal_skills": [],
+  "automation_level": "deterministic_contract_only"
+}

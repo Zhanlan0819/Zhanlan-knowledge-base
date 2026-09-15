@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/kb/paired-evaluation.schema.json",
+  "title": "本项目适配层：已独立取得的 paired judge 投票记录",
+  "type": "object", "required": ["candidate_version", "baseline_version", "test_case_ids", "votes", "human_review_status"],
+  "properties": {
+    "candidate_version": {"type": "string", "minLength": 1}, "baseline_version": {"type": "string", "minLength": 1},
+    "test_case_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "votes": {"type": "array", "minItems": 3, "items": {"type": "object", "required": ["judge_id", "vote", "rationale"],
+      "properties": {"judge_id": {"type": "string", "minLength": 1}, "vote": {"enum": ["better", "worse", "tie"]},
+        "rationale": {"type": "string", "minLength": 1}}, "additionalProperties": false}},
+    "human_review_status": {"enum": ["pending", "approved", "rejected"]}
+  },
+  "additionalProperties": false,
+  "$comment": "Schema 不能证明 judge 独立性、实测输出质量或真人身份；记录用于人工审计。"
+}
