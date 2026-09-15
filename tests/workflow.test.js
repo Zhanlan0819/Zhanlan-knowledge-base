@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { WorkflowService } from '../src/workflow.js';
 
 const bytes = fs.readFileSync(new URL('../fixtures/mixed.txt', import.meta.url));
@@ -362,5 +363,56 @@ test('artifact tampering is detected on resume', () => {
   const state = service.loadState(runId);
   fs.writeFileSync(service.artifactPath(runId, 'router', state.stages.router.version), '{}');
   assert.throws(() => new WorkflowService(store).resume(runId), /阶段产物被篡改/);
+  cleanup(store);
+});
+
+
+test('v0.3 resume exposes machine-readable required_action', () => {
+  const store = temp();
+  const { service, runId, s } = started(store);
+  assert.equal(service.resume(runId).required_action, 'execute');
+  service.reportFailure(runId, 'router', { error: 'temporary model failure' });
+  assert.equal(service.resume(runId).required_action, 'retry');
+  service.retry(runId, 'router', { assets: s.assets, risk_flags: [] });
+  assert.equal(service.resume(runId).required_action, 'execute');
+  cleanup(store);
+});
+
+test('Ed25519 public-key verifier can resume signed review but cannot sign protected writes', () => {
+  const store = temp();
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
+  const signer = new WorkflowService(store, { reviewerPrivateKey: privateKey, reviewerPublicKey: publicKey });
+  const result = signer.start({ bytes, annotations });
+  const runId = result.run_id, s = result.suggestion;
+  signer.submit(runId, 'router', { assets: s.assets, risk_flags: [] });
+  signer.submit(runId, 'atomicizer', { atoms: s.atoms });
+  signer.submit(runId, 'claims', { claims: s.claims });
+  signer.submit(runId, 'family_builder', { families: s.families });
+  signer.submit(runId, 'theme_builder', { themes: s.themes, major_change: 'none' });
+  signer.submit(runId, 'reconciler', { relations: s.relations, version_judgement: false });
+  signer.submit(runId, 'distiller', { distillations: [{ id: 'distill_ed25519', theme_id: s.themes[0].id,
+    supporting_claim_ids: [s.claims[0].id], text: s.proposals[0].text, status: 'provisional' }] });
+  signer.submit(runId, 'proposal', { proposals: s.proposals });
+  const reviewed = signer.recordDecision(runId, { checkpoint: 'canonical_proposal',
+    proposalId: s.proposals[0].id, decision: 'approved' }, { actor: 'user_review_service' });
+  assert.equal(reviewed.decision.signature_alg, 'ed25519-v1');
+  const verifier = new WorkflowService(store, { reviewerPublicKey: publicKey });
+  const resumed = verifier.resume(runId);
+  assert.equal(resumed.required_action, 'apply_approved_proposals');
+  assert.throws(() => verifier.applyApprovedProposals(runId, { actor: 'user_review_service' }), /签名能力/);
+  const applied = signer.applyApprovedProposals(runId, { actor: 'user_review_service' });
+  assert.equal(applied.versions.length, 1);
+  cleanup(store);
+});
+
+test('Artifact provenance records Skill/model/context identity without changing stage data', () => {
+  const store = temp();
+  const { service, runId, s } = started(store);
+  const provenance = { skill_path: 'skills/knowledge-router/SKILL.md', skill_sha256: 'a'.repeat(64),
+    model: 'fake-model', runner: 'AgentRuntime/v0.3', attempt_id: 'attempt_test', context_sha256: 'b'.repeat(64) };
+  const result = service.submit(runId, 'router', { assets: s.assets, risk_flags: [] },
+    { producer: 'fake-model', provenance });
+  assert.deepEqual(result.artifact.provenance, provenance);
+  assert.deepEqual(result.artifact.data.assets, s.assets);
   cleanup(store);
 });

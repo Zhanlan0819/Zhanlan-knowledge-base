@@ -1,0 +1,16 @@
+44c8ee01a8c0695639a2e120bda7e2d5746a02e156d5103e7f53044116f7b7ec  ./README.md
+f43860c2355a6090f4565be0c1e093e7b4d94ed09e51aa657b464bc4dc237bd0  ./V0.3_覆盖说明.md
+47939bfa55a18a5ffd420823c35bd17009bf83a5e838fb0bc0f7538296be1cfe  ./schemas/artifact-envelope.schema.json
+d4bda67c760752031a039619936c650b5ab40fd125f580af66a231502ff3987f  ./schemas/workflow-artifacts.schema.json
+28ce4a891543376bb00af09d14f4ae4e2f4436ea05144929379325cdff585ae4  ./schemas/workflow-state.schema.json
+07365a5b9a632b4166b6b765283343122cc21f4ddd2600d65035e4806368bf49  ./scripts/generate-review-keypair.js
+5f3c00ad18d8526b56a28cc49fc11bfb2550aece58f28424ed1d051c4753e913  ./skills/knowledge-orchestrator/SKILL.md
+1b3fc96dabb4bb5d1e789f398fc06b865758562ac2f67950547bd1f709f46df4  ./src/agent-runtime.js
+5a5ea5b328a7597565515866e20f52433d36c92e04d3a20fce0d75fadf4d1b63  ./src/pipeline.js
+0da76ba68b64cac1142a7345ba315e0c914ed4a7f6e2818eadddc8b1b665d221  ./src/review-crypto.js
+8ed3d8d964df1aab126d138011743bd85183d6152178dd9a2f50769862d48207  ./src/stage-registry.js
+5a72200e957b0a6eedc825881a49f038e9217e76bb494d72da38192ec7571497  ./src/workflow-cli.js
+d4a4fbb0bb59d1e44038c29b6ef92eed6aea99d5e44a7d8c18788e8e8170b496  ./src/workflow.js
+0e8ecf447274b96f77a1b07f45a5b6169e3c02b7c0c0a143d1c79c192a2bf9d3  ./tests/agent-runtime.test.js
+65f72a2d817c918f8262ca4d10220ef65a77ec9ca002e18c4cc0f5885d5f51ff  ./tests/workflow.test.js
+222397135c02c9dcc6879ad62d022307f2b4cbc3ade27e1c64d22cb934c039d0  ./架构与阶段契约.md

@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { ingest, assessSkillCandidate, evaluatePaired } from './pipeline.js';
+import { ReviewCrypto } from './review-crypto.js';
 
 export const STAGES = ['intake', 'router', 'atomicizer', 'claims', 'family_builder', 'theme_builder',
   'reconciler', 'distiller', 'proposal', 'canonical', 'skill_candidate', 'skill_builder', 'evaluator', 'skill_publish'];
@@ -47,10 +48,12 @@ function outputIds(data) {
 }
 
 export class WorkflowService {
-  constructor(store, { reviewerSecret = null } = {}) {
+  constructor(store, { reviewerSecret = null, reviewerPublicKey = null, reviewerPrivateKey = null,
+    reviewKeyId = 'review-ed25519-v1' } = {}) {
     assert(typeof store === 'string' && store.length > 0, 'store 必须非空');
     this.store = path.resolve(store);
-    this.reviewerSecret = reviewerSecret;
+    this.reviewCrypto = new ReviewCrypto({ publicKey: reviewerPublicKey, privateKey: reviewerPrivateKey,
+      legacySecret: reviewerSecret, keyId: reviewKeyId });
   }
 
   runDir(runId) {
@@ -67,7 +70,7 @@ export class WorkflowService {
   start({ bytes, annotations, producer = 'external_annotations' }) {
     const suggestion = ingest({ store: this.store, bytes, annotations });
     const runId = `wf_${crypto.randomUUID()}`;
-    const state = { schema_version: '0.2.0', run_id: runId, raw_id: suggestion.raw_id,
+    const state = { schema_version: '0.3.0', run_id: runId, raw_id: suggestion.raw_id,
       suggestion_run_id: suggestion.run_id, status: 'running', current_stage: 'router',
       stages: Object.fromEntries(STAGES.map(s => [s, stageRecord()])),
       checkpoints: {}, decisions: [], created_at: now(), updated_at: now() };
@@ -116,7 +119,8 @@ export class WorkflowService {
         assert(envelope.inputs.map(x => x.artifact_id).join('|') === expected.join('|'), `阶段 ${stage} 依赖已变更，必须重验`);
       }
     }
-    for (const decision of state.decisions) assert(this.verifyDecision(decision), '审批签名无法验证；需要同一审阅密钥恢复');
+    for (const decision of state.decisions) assert(this.verifyDecision(decision),
+      '审批签名无法验证；Agent/只读恢复需要审阅公钥，旧版 HMAC run 需要原 KB_REVIEW_SECRET');
     for (const [gate, cp] of Object.entries(state.checkpoints)) if (cp.status !== 'waiting_user_approval') {
       const source = state.stages[cp.stage].artifact_id;
       const matching = state.decisions.filter(d => d.checkpoint === gate && d.source_artifact_id === source);
@@ -216,7 +220,7 @@ export class WorkflowService {
       assert(state.checkpoints[gate].status === 'approved', `STOP: ${gate} 仍需用户批准`);
   }
 
-  commitArtifact(state, stage, data, producer) {
+  commitArtifact(state, stage, data, producer, provenance = null) {
     checkSchema(stageValidator[stage], data, stage);
     const record = state.stages[stage];
     const version = record.version + 1;
@@ -224,6 +228,7 @@ export class WorkflowService {
     const artifactId = `artifact_${sha(JSON.stringify({ run_id: state.run_id, stage, version, inputs, data })).slice(0, 20)}`;
     const envelope = { artifact_id: artifactId, run_id: state.run_id, stage, version,
       producer, created_at: now(), inputs, data };
+    if (provenance) envelope.provenance = provenance;
     checkSchema(envelopeValidator, envelope, `${stage} envelope`);
     const bytes = JSON.stringify(envelope, null, 2);
     const file = this.artifactPath(state.run_id, stage, version);
@@ -358,7 +363,7 @@ export class WorkflowService {
     return false;
   }
 
-  submit(runId, stage, output, { producer = 'model' } = {}) {
+  submit(runId, stage, output, { producer = 'model', provenance = null } = {}) {
     const state = this.loadState(runId);
     this.preconditions(state, stage);
     let data;
@@ -374,7 +379,7 @@ export class WorkflowService {
         output_ids: [], model_agent: producer, result: 'failed', error: error.message });
       throw error;
     }
-    const envelope = this.commitArtifact(state, stage, data, producer);
+    const envelope = this.commitArtifact(state, stage, data, producer, provenance);
     const gate = GATES[stage];
     if (gate && this.gateNeeded(stage, data)) {
       state.stages[stage].status = 'waiting_review';
@@ -408,21 +413,20 @@ export class WorkflowService {
   }
 
   decisionSignature(decision) {
-    assert(typeof this.reviewerSecret === 'string' && this.reviewerSecret.length >= 16,
-      '审阅密钥缺失或太短；禁止声称真人审批');
-    const { signature: _ignored, ...payload } = decision;
-    return crypto.createHmac('sha256', this.reviewerSecret).update(JSON.stringify(payload)).digest('hex');
+    return this.reviewCrypto.sign(decision);
   }
   verifyDecision(decision) {
-    if (!this.reviewerSecret) return false;
-    const expected = this.decisionSignature(decision);
-    return /^[a-f0-9]{64}$/.test(decision.signature)
-      && crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(decision.signature, 'hex'));
+    return this.reviewCrypto.verify(decision);
+  }
+  assertReviewSigner() {
+    assert(this.reviewCrypto.canSign(),
+      '此操作需要 Review Service 的签名能力；Agent Runtime 只能持有公钥，不能记录审批或执行正式写入');
   }
 
   recordDecision(runId, { checkpoint, proposalId = null, decision, acceptedChanges = [],
     rejectedChanges = [], reviewer = 'user' }, { actor = 'ai' } = {}) {
     assert(actor === 'user_review_service', 'AI 无权记录审批决定');
+    this.assertReviewSigner();
     const state = this.loadState(runId);
     const cp = state.checkpoints[checkpoint];
     assert(cp?.status === 'waiting_user_approval', 'Checkpoint 不在等待用户审阅');
@@ -441,11 +445,11 @@ export class WorkflowService {
       assert(proposalId === null, '非 Proposal Gate 不接收 proposalId');
       assert(decision !== 'partial', '此 Gate 只接受或拒绝');
     }
-    const record = { id: `decision_${crypto.randomUUID()}`, checkpoint, proposal_id: proposalId,
+    const unsigned = { id: `decision_${crypto.randomUUID()}`, checkpoint, proposal_id: proposalId,
       source_artifact_id: state.stages[cp.stage].artifact_id, decision, approved_by: reviewer,
       approved_at: now(), accepted_changes: acceptedChanges, rejected_changes: rejectedChanges,
       signature: '' };
-    record.signature = this.decisionSignature(record);
+    const record = this.decisionSignature(unsigned);
     state.decisions.push(record);
     if (checkpoint === 'canonical_proposal') {
       const current = state.decisions.filter(d => d.checkpoint === checkpoint
@@ -477,6 +481,7 @@ export class WorkflowService {
 
   applyApprovedProposals(runId, { actor = 'ai' } = {}) {
     assert(actor === 'user_review_service', 'AI 无权写 Canonical Knowledge');
+    this.assertReviewSigner();
     const state = this.loadState(runId);
     assert(state.stages.proposal.status === 'completed' && state.checkpoints.canonical_proposal?.status === 'approved',
       '未经批准的 Proposal 不能写正式知识');
@@ -522,6 +527,7 @@ export class WorkflowService {
   }
   rollback(runId, stage, { actor = 'user_review_service', reason = '人工判定产物有问题' } = {}) {
     assert(actor === 'user_review_service', 'AI 无权主动退回已批准阶段');
+    this.assertReviewSigner();
     const state = this.loadState(runId);
     assert(state.stages[stage]?.artifact_id, `${stage} 没有可退回产物`);
     assert(!['canonical', 'skill_publish'].includes(stage), '正式知识/Skill 不做破坏性回滚；请提交修订 Proposal');
@@ -552,13 +558,20 @@ export class WorkflowService {
   resume(runId) {
     const state = this.loadState(runId);
     const waiting = Object.entries(state.checkpoints).find(([, c]) => c.status === 'waiting_user_approval');
-    if (waiting) return { run_id: runId, status: 'waiting_user_approval',
+    if (waiting) return { run_id: runId, status: 'waiting_user_approval', required_action: 'review',
       next_stage: null, checkpoint: waiting[0], reason: waiting[1].reason, state };
     if (['completed', 'completed_nonknowledge', 'rejected'].includes(state.status))
-      return { run_id: runId, status: state.status, next_stage: null, checkpoint: null, state };
+      return { run_id: runId, status: state.status, required_action: 'done',
+        next_stage: null, checkpoint: null, state };
     const next = STAGES.find(s => ['not_started', 'failed', 'needs_revision', 'stale'].includes(state.stages[s].status)
       && (s === 'intake' || DEPENDS[s].every(d => state.stages[d].status === 'completed')));
-    return { run_id: runId, status: state.status, next_stage: next ?? state.current_stage,
+    const stage = next ?? state.current_stage;
+    let requiredAction = 'execute';
+    if (stage === 'canonical') requiredAction = 'apply_approved_proposals';
+    else if (stage === 'skill_publish') requiredAction = 'publish_approved_skill';
+    else if (stage && ['failed', 'needs_revision', 'stale'].includes(state.stages[stage]?.status)) requiredAction = 'retry';
+    else if (!stage) requiredAction = 'done';
+    return { run_id: runId, status: state.status, required_action: requiredAction, next_stage: stage,
       checkpoint: null, state };
   }
   traceCanonical(runId, canonicalId) {
@@ -574,6 +587,7 @@ export class WorkflowService {
 
   publishApprovedSkill(runId, { actor = 'ai' } = {}) {
     assert(actor === 'user_review_service', 'AI 无权发布正式 Skill');
+    this.assertReviewSigner();
     const state = this.loadState(runId);
     assert(state.stages.evaluator.status === 'completed' && state.checkpoints.skill_publication?.status === 'approved',
       '发布前缺真实评测结果或 Gate F 审批');

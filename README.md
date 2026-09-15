@@ -1,6 +1,39 @@
-# 阿星知识库智能整理与知识蒸馏系统 · 工作流骨架 v0.2
+# 阿星知识库智能整理与知识蒸馏系统 · 工作流骨架 v0.3
 
-定位：所有输入先整理成合适的资产；Skill 只是成熟知识的后段分支。本目录是可继续开发的本地骨架，不是已经接通 AI、任务平台或正式知识库的生产系统。
+定位：所有输入先整理成合适的资产；Skill 只是成熟知识的后段分支。v0.3 在 v0.2 的确定性 WorkflowService 之上新增 Agent Runtime / Stage Registry，并将审阅签名拆为推荐的 Ed25519 公钥验签 + 私钥签名。模型仍不直接拥有正式知识/Skill 写权限。
+
+
+## v0.3 新增：Agent Runtime 与最小上下文
+
+- `src/agent-runtime.js`：执行 `resume → 当前阶段 → 单一 specialist Skill → 模型 JSON → submit/retry`，遇 Gate、正式写入或终态立即停止。
+- `src/stage-registry.js`：机器可读的阶段→Skill→最小 Artifact/RAW 上下文映射，避免九份 Skill 和长参考文档同时进入上下文。
+- `resume()` 新增 `required_action`：`execute / retry / review / apply_approved_proposals / publish_approved_skill / done`。
+- `Artifact envelope` 可记录 `skill_sha256/model/runner/attempt_id/context_sha256`，用于追踪某个结果到底由哪版 Skill 和哪次模型执行产生。
+- CLI 新增 `prepare-stage`、`run-stage`、`run-until-stop`。`run-stage` 只执行一个阶段；`run-until-stop` 才会自动连续执行到 Gate/正式写入/终态。
+
+外部模型桥接采用严格 JSON stdin/stdout：设置 `KB_MODEL_COMMAND`，可选 `KB_MODEL_ARGS_JSON`（JSON 字符串数组）与 `KB_MODEL_ID`。模型命令从 stdin 接收 `knowledge-stage-request/v0.3` JSON，并只在 stdout 返回阶段 JSON（或 `{ "output": <阶段JSON> }`）。没有模型命令时可用 `prepare-stage` 生成当前阶段请求，交给宿主 Agent 执行。
+
+## v0.3 审阅密钥分离
+
+推荐先运行：
+
+```powershell
+node scripts/generate-review-keypair.js --out .review-keys
+```
+
+Agent/普通 `resume` 进程只配置：
+
+```powershell
+$env:KB_REVIEW_PUBLIC_KEY_FILE=".review-keys/review-public.pem"
+```
+
+真人 Review Service 终端在需要 `decision/rollback/apply/publish` 时额外配置：
+
+```powershell
+$env:KB_REVIEW_PRIVATE_KEY_FILE=".review-keys/review-private.pem"
+```
+
+私钥不要交给模型进程。旧 v0.2 run 仍兼容 `KB_REVIEW_SECRET`；含旧 HMAC 审批的 run 要继续恢复时仍需原 secret。
 
 ## 快速运行
 
