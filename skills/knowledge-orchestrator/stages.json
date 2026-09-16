@@ -1,0 +1,115 @@
+{
+  "schema_version": "0.4.2",
+  "description": "知识整理总控的内部阶段注册表。只有 knowledge-orchestrator/SKILL.md 对外可发现；label_zh 仅用于中文展示。",
+  "stages": {
+    "router": {
+      "instruction": "skills/knowledge-router/STAGE.md",
+      "legacy_skill": "skills/knowledge-router/SKILL.md",
+      "include_raw": true,
+      "artifacts": [],
+      "label_zh": "内容分流"
+    },
+    "atomicizer": {
+      "instruction": "skills/knowledge-atomicizer/STAGE.md",
+      "legacy_skill": "skills/knowledge-atomicizer/SKILL.md",
+      "include_raw": true,
+      "artifacts": [
+        "router"
+      ],
+      "label_zh": "知识拆解"
+    },
+    "claims": {
+      "instruction": "skills/knowledge-atomicizer/STAGE.md",
+      "legacy_skill": "skills/knowledge-atomicizer/SKILL.md",
+      "include_raw": true,
+      "artifacts": [
+        "atomicizer"
+      ],
+      "label_zh": "主张提取"
+    },
+    "family_builder": {
+      "instruction": "skills/knowledge-family-builder/STAGE.md",
+      "legacy_skill": "skills/knowledge-family-builder/SKILL.md",
+      "include_raw": false,
+      "artifacts": [
+        "claims"
+      ],
+      "label_zh": "同类知识归组"
+    },
+    "theme_builder": {
+      "instruction": "skills/knowledge-theme-builder/STAGE.md",
+      "legacy_skill": "skills/knowledge-theme-builder/SKILL.md",
+      "include_raw": false,
+      "artifacts": [
+        "family_builder",
+        "claims"
+      ],
+      "label_zh": "主题整理"
+    },
+    "reconciler": {
+      "instruction": "skills/knowledge-reconciler/STAGE.md",
+      "legacy_skill": "skills/knowledge-reconciler/SKILL.md",
+      "include_raw": false,
+      "artifacts": [
+        "theme_builder",
+        "family_builder",
+        "claims"
+      ],
+      "label_zh": "冲突与版本检查"
+    },
+    "distiller": {
+      "instruction": "skills/knowledge-distiller/STAGE.md",
+      "legacy_skill": "skills/knowledge-distiller/SKILL.md",
+      "include_raw": true,
+      "artifacts": [
+        "theme_builder",
+        "family_builder",
+        "claims",
+        "reconciler"
+      ],
+      "label_zh": "知识蒸馏"
+    },
+    "proposal": {
+      "instruction": "skills/knowledge-distiller/STAGE.md",
+      "legacy_skill": "skills/knowledge-distiller/SKILL.md",
+      "include_raw": true,
+      "artifacts": [
+        "distiller",
+        "theme_builder",
+        "family_builder",
+        "claims"
+      ],
+      "label_zh": "生成待确认提案"
+    },
+    "skill_candidate": {
+      "instruction": "skills/knowledge-skill-builder/STAGE.md",
+      "legacy_skill": "skills/knowledge-skill-builder/SKILL.md",
+      "include_raw": false,
+      "artifacts": [
+        "canonical",
+        "claims"
+      ],
+      "label_zh": "能力候选筛选"
+    },
+    "skill_builder": {
+      "instruction": "skills/knowledge-skill-builder/STAGE.md",
+      "legacy_skill": "skills/knowledge-skill-builder/SKILL.md",
+      "include_raw": false,
+      "artifacts": [
+        "skill_candidate",
+        "canonical"
+      ],
+      "label_zh": "能力规则构建"
+    },
+    "evaluator": {
+      "instruction": "skills/knowledge-evaluator/STAGE.md",
+      "legacy_skill": "skills/knowledge-evaluator/SKILL.md",
+      "include_raw": false,
+      "artifacts": [
+        "skill_builder",
+        "skill_candidate"
+      ],
+      "label_zh": "实际任务评测"
+    }
+  }
+}

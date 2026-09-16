@@ -28,13 +28,6 @@ export class ReviewCrypto {
     return Boolean(this.privateKey || (typeof this.legacySecret === 'string' && this.legacySecret.length >= 16));
   }
 
-  canVerify(decision = null) {
-    const alg = decision?.signature_alg ?? (decision?.signature ? LEGACY_HMAC_SIGNATURE_ALG : null);
-    if (alg === ED25519_SIGNATURE_ALG) return Boolean(this.publicKey);
-    if (alg === LEGACY_HMAC_SIGNATURE_ALG) return typeof this.legacySecret === 'string' && this.legacySecret.length >= 16;
-    return false;
-  }
-
   sign(decision) {
     if (this.privateKey) {
       const record = { ...decision, signature_alg: ED25519_SIGNATURE_ALG, key_id: this.keyId, signature: '' };
@@ -59,7 +52,6 @@ export class ReviewCrypto {
       }
       if (alg === LEGACY_HMAC_SIGNATURE_ALG) {
         if (typeof this.legacySecret !== 'string' || this.legacySecret.length < 16) return false;
-        // v0.2 records had no signature_alg/key_id and signed the insertion-ordered payload.
         if (!decision.signature_alg) {
           const { signature: _ignored, ...payload } = decision;
           const expected = crypto.createHmac('sha256', this.legacySecret).update(JSON.stringify(payload)).digest('hex');

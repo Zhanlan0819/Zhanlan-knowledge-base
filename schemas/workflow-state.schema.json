@@ -1,14 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.invalid/kb/workflow-state.schema.json",
-  "title": "RUN_STATE.json v0.2/v0.3 compatible",
+  "title": "RUN_STATE.json v0.2-v0.4 compatible",
   "type": "object",
   "required": ["schema_version", "run_id", "raw_id", "suggestion_run_id", "status", "current_stage", "stages", "checkpoints", "decisions", "created_at", "updated_at"],
   "additionalProperties": false,
   "$defs": {
-    "stageName": {
-      "enum": ["intake", "router", "atomicizer", "claims", "family_builder", "theme_builder", "reconciler", "distiller", "proposal", "canonical", "skill_candidate", "skill_builder", "evaluator", "skill_publish"]
-    },
+    "stageName": {"enum": ["intake", "router", "atomicizer", "claims", "family_builder", "theme_builder", "reconciler", "distiller", "proposal", "canonical", "skill_candidate", "skill_builder", "evaluator", "skill_publish"]},
     "stageRecord": {
       "type": "object",
       "required": ["status", "version", "artifact_id", "sha256", "error"],
@@ -23,7 +21,7 @@
     }
   },
   "properties": {
-    "schema_version": {"enum": ["0.2.0", "0.3.0"]},
+    "schema_version": {"enum": ["0.2.0", "0.3.0", "0.4.0"]},
     "run_id": {"type": "string"},
     "raw_id": {"type": "string"},
     "suggestion_run_id": {"type": "string"},

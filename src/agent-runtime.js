@@ -2,15 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { buildStageContext, loadStageSkill, DEFAULT_PROJECT_ROOT } from './stage-registry.js';
+import { buildStageContext, loadStageInstruction, DEFAULT_PROJECT_ROOT } from './stage-registry.js';
+import { presentResume, presentStageHistory, stageLabel } from './display-labels.js';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
-
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
-}
+const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 function readWorkflowSchema(projectRoot) {
   return readJson(path.resolve(projectRoot, 'schemas/workflow-artifacts.schema.json'));
@@ -60,32 +56,42 @@ export class AgentRuntime {
     this.maxAutoSteps = maxAutoSteps;
   }
 
-  inspect(runId) {
-    return this.service.resume(runId);
-  }
+  inspect(runId) { return this.service.resume(runId); }
 
   prepareStage(runId) {
     const resumed = this.service.resume(runId);
-    if (!['execute', 'retry'].includes(resumed.required_action)) return { runnable: false, resumed };
+    if (!['execute', 'retry'].includes(resumed.required_action)) return { runnable: false, display: presentResume(resumed), resumed };
     const stage = resumed.next_stage;
     const state = resumed.state;
-    const skill = loadStageSkill(stage, { projectRoot: this.projectRoot });
-    const context = buildStageContext(this.service, state, stage);
+    const instruction = loadStageInstruction(stage, { projectRoot: this.projectRoot });
+    const context = buildStageContext(this.service, state, stage, { projectRoot: this.projectRoot });
     const schema = readWorkflowSchema(this.projectRoot);
     const stageSchema = schema.$defs?.[stage] ?? null;
     const request = {
-      protocol: 'knowledge-stage-request/v0.3',
+      protocol: 'knowledge-stage-request/v0.4.2',
       run_id: runId,
       stage,
+      stage_label_zh: stageLabel(stage),
       action: resumed.required_action,
       rules: [
+        '你是“知识整理总控”当前阶段的内部执行单元，不是独立对外 Skill。',
         '只执行当前 stage；不得自行进入下一阶段。',
-        '把 stage Skill 当作当前语义规则来源；不要加载其它 specialist Skill。',
+        'stage_instruction 是当前阶段的语义规则来源；不要加载或选择其它阶段。',
         '只返回一个 JSON 对象，不要 Markdown 代码围栏、解释或审批结论。',
         '不得伪造用户批准、Review Service 身份、Canonical 或正式 Skill 发布。',
-        '不确定内容必须按当前 Skill/Schema 的待确认或风险机制表达，不得编造。'
+        '不确定内容必须按当前阶段规则/Schema 的待确认或风险机制表达，不得编造。',
+        'Schema 要求的英文枚举和内部 ID 必须保持原样；但 title/name/question/text/summary/description 等面向人的语义字段，在中文语料中必须使用自然中文。',
+        '不得把 content-path-*、method-*、business-*、knowledge-*、organized-*、raw_*、wf_*、claim_* 等内部 ID 填进面向人的标题或说明字段。',
+        '不得在语义文本中输出 external=外部资料、case=项目案例 这类中英对照机器说明。'
       ],
-      skill: { path: skill.path, sha256: skill.sha256, content: skill.text },
+      stage_instruction: {
+        path: instruction.path,
+        intended_path: instruction.intended_path,
+        label_zh: instruction.label_zh,
+        sha256: instruction.sha256,
+        legacy_fallback: instruction.legacy_fallback,
+        content: instruction.text
+      },
       output_contract: {
         schema_ref: `schemas/workflow-artifacts.schema.json#/$defs/${stage}`,
         stage_schema: stageSchema,
@@ -93,7 +99,7 @@ export class AgentRuntime {
       },
       context
     };
-    return { runnable: true, resumed, request, skill };
+    return { runnable: true, resumed, request, instruction };
   }
 
   runOne(runId) {
@@ -101,7 +107,7 @@ export class AgentRuntime {
     if (!prepared.runnable) return { status: 'stopped', ...prepared.resumed };
     if (!this.modelAdapter || typeof this.modelAdapter.generate !== 'function')
       throw new Error('没有 modelAdapter；可先使用 prepareStage()，或给 AgentRuntime 注入模型适配器');
-    const { request, resumed, skill } = prepared;
+    const { request, resumed, instruction } = prepared;
     const attemptId = `attempt_${crypto.randomUUID()}`;
     let output;
     try {
@@ -111,14 +117,15 @@ export class AgentRuntime {
         error: `model invocation failed: ${error.message}`,
         producer: this.modelAdapter.id ?? 'model_adapter'
       });
-      return { status: 'failed', run_id: runId, stage: resumed.next_stage, error: error.message,
-        resumed: this.service.resume(runId) };
+      const after = this.service.resume(runId);
+      return { status: 'failed', run_id: runId, stage: resumed.next_stage, stage_label_zh: stageLabel(resumed.next_stage), error: error.message,
+        display: presentResume(after), resumed: after };
     }
     const provenance = {
-      skill_path: skill.path,
-      skill_sha256: skill.sha256,
+      instruction_path: instruction.path,
+      instruction_sha256: instruction.sha256,
       model: this.modelAdapter.id ?? 'unknown-model-adapter',
-      runner: 'AgentRuntime/v0.3',
+      runner: 'AgentRuntime/v0.4.2',
       attempt_id: attemptId,
       context_sha256: sha(JSON.stringify(request.context))
     };
@@ -126,11 +133,13 @@ export class AgentRuntime {
       const result = resumed.required_action === 'retry'
         ? this.service.retry(runId, resumed.next_stage, output, { producer: provenance.model, provenance })
         : this.service.submit(runId, resumed.next_stage, output, { producer: provenance.model, provenance });
-      return { status: 'stage_completed', run_id: runId, stage: resumed.next_stage,
-        artifact_id: result.artifact?.artifact_id ?? null, resumed: this.service.resume(runId) };
+      const after = this.service.resume(runId);
+      return { status: 'stage_completed', run_id: runId, stage: resumed.next_stage, stage_label_zh: stageLabel(resumed.next_stage),
+        artifact_id: result.artifact?.artifact_id ?? null, display: presentResume(after), resumed: after };
     } catch (error) {
-      return { status: 'failed', run_id: runId, stage: resumed.next_stage, error: error.message,
-        resumed: this.service.resume(runId) };
+      const after = this.service.resume(runId);
+      return { status: 'failed', run_id: runId, stage: resumed.next_stage, stage_label_zh: stageLabel(resumed.next_stage), error: error.message,
+        display: presentResume(after), resumed: after };
     }
   }
 
@@ -140,10 +149,12 @@ export class AgentRuntime {
       const status = this.service.resume(runId);
       if (!['execute', 'retry'].includes(status.required_action))
         return { run_id: runId, status: status.status, required_action: status.required_action,
-          checkpoint: status.checkpoint ?? null, next_stage: status.next_stage ?? null, history, state: status.state };
+          checkpoint: status.checkpoint ?? null, next_stage: status.next_stage ?? null,
+          display: { ...presentResume(status), '已执行步骤': presentStageHistory(history) }, history, state: status.state };
       const one = this.runOne(runId);
-      history.push({ stage: one.stage, status: one.status, artifact_id: one.artifact_id ?? null, error: one.error ?? null });
+      history.push({ stage: one.stage, stage_label_zh: stageLabel(one.stage), status: one.status, artifact_id: one.artifact_id ?? null, error: one.error ?? null });
       if (one.status === 'failed') return { run_id: runId, status: 'failed', required_action: 'retry', history,
+        display: { ...presentResume(one.resumed), '已执行步骤': presentStageHistory(history) },
         state: one.resumed.state, next_stage: one.resumed.next_stage };
     }
     throw new Error(`AgentRuntime 超过最大自动步数 ${maxSteps}；停止以避免失控循环`);

@@ -367,7 +367,7 @@ test('artifact tampering is detected on resume', () => {
 });
 
 
-test('v0.3 resume exposes machine-readable required_action', () => {
+test('v0.4 resume exposes machine-readable required_action', () => {
   const store = temp();
   const { service, runId, s } = started(store);
   assert.equal(service.resume(runId).required_action, 'execute');
@@ -405,11 +405,11 @@ test('Ed25519 public-key verifier can resume signed review but cannot sign prote
   cleanup(store);
 });
 
-test('Artifact provenance records Skill/model/context identity without changing stage data', () => {
+test('Artifact provenance accepts internal stage-instruction identity', () => {
   const store = temp();
   const { service, runId, s } = started(store);
-  const provenance = { skill_path: 'skills/knowledge-router/SKILL.md', skill_sha256: 'a'.repeat(64),
-    model: 'fake-model', runner: 'AgentRuntime/v0.3', attempt_id: 'attempt_test', context_sha256: 'b'.repeat(64) };
+  const provenance = { instruction_path: 'skills/knowledge-router/STAGE.md', instruction_sha256: 'a'.repeat(64),
+    model: 'fake-model', runner: 'AgentRuntime/v0.4', attempt_id: 'attempt_test', context_sha256: 'b'.repeat(64) };
   const result = service.submit(runId, 'router', { assets: s.assets, risk_flags: [] },
     { producer: 'fake-model', provenance });
   assert.deepEqual(result.artifact.provenance, provenance);

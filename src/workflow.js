@@ -70,7 +70,7 @@ export class WorkflowService {
   start({ bytes, annotations, producer = 'external_annotations' }) {
     const suggestion = ingest({ store: this.store, bytes, annotations });
     const runId = `wf_${crypto.randomUUID()}`;
-    const state = { schema_version: '0.3.0', run_id: runId, raw_id: suggestion.raw_id,
+    const state = { schema_version: '0.4.0', run_id: runId, raw_id: suggestion.raw_id,
       suggestion_run_id: suggestion.run_id, status: 'running', current_stage: 'router',
       stages: Object.fromEntries(STAGES.map(s => [s, stageRecord()])),
       checkpoints: {}, decisions: [], created_at: now(), updated_at: now() };
@@ -120,7 +120,7 @@ export class WorkflowService {
       }
     }
     for (const decision of state.decisions) assert(this.verifyDecision(decision),
-      '审批签名无法验证；Agent/只读恢复需要审阅公钥，旧版 HMAC run 需要原 KB_REVIEW_SECRET');
+      '审批签名无法验证；新 run 只读恢复需要审阅公钥，旧 HMAC run 需要原 KB_REVIEW_SECRET');
     for (const [gate, cp] of Object.entries(state.checkpoints)) if (cp.status !== 'waiting_user_approval') {
       const source = state.stages[cp.stage].artifact_id;
       const matching = state.decisions.filter(d => d.checkpoint === gate && d.source_artifact_id === source);

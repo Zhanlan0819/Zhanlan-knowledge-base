@@ -26,16 +26,22 @@
     },
     "provenance": {
       "type": "object",
-      "required": ["skill_path", "skill_sha256", "model", "runner", "attempt_id", "context_sha256"],
+      "required": ["model", "runner", "attempt_id", "context_sha256"],
       "additionalProperties": false,
       "properties": {
+        "instruction_path": {"type": "string", "minLength": 1},
+        "instruction_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "skill_path": {"type": "string", "minLength": 1},
         "skill_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "model": {"type": "string", "minLength": 1},
         "runner": {"type": "string", "minLength": 1},
         "attempt_id": {"type": "string", "minLength": 1},
         "context_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-      }
+      },
+      "anyOf": [
+        {"required": ["instruction_path", "instruction_sha256"]},
+        {"required": ["skill_path", "skill_sha256"]}
+      ]
     },
     "data": {"type": "object"}
   }

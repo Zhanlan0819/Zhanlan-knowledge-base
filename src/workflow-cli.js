@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import { WorkflowService } from './workflow.js';
 import { AgentRuntime, ExternalCommandModelAdapter } from './agent-runtime.js';
+import { specialistVisibilityReport } from './stage-registry.js';
+import { presentResume, stageLabel, statusLabel, assetTypeLabel } from './display-labels.js';
 
 function flag(name) { const i = process.argv.indexOf(name); return i < 0 ? null : process.argv[i + 1]; }
 const print = value => process.stdout.write(JSON.stringify(value, null, 2) + '\n');
@@ -34,11 +36,14 @@ function modelAdapterFromEnv() {
     if (!Array.isArray(args) || !args.every(x => typeof x === 'string'))
       throw new Error('KB_MODEL_ARGS_JSON 必须是 JSON 字符串数组');
   }
-  return new ExternalCommandModelAdapter({ command, args,
-    id: process.env.KB_MODEL_ID ?? `external:${command}` });
+  return new ExternalCommandModelAdapter({ command, args, id: process.env.KB_MODEL_ID ?? `external:${command}` });
 }
 
 try {
+  if (action === 'skill-visibility') {
+    print(specialistVisibilityReport());
+    process.exit(0);
+  }
   if (!store) throw new Error('需要 --store DIR');
   const service = new WorkflowService(store, reviewerOptions());
   if (action === 'start' || action === 'demo') {
@@ -67,14 +72,23 @@ try {
       service.submit(runId, 'proposal', { proposals: s.proposals }, { producer: 'fixture_adapter' });
       const r = service.resume(runId);
       print({ run_id: runId, status: r.status, required_action: r.required_action,
-        checkpoint: r.checkpoint, reason: r.reason,
-        state_path: service.statePath(runId), proposal_ids: s.proposals.map(p => p.id),
+        checkpoint: r.checkpoint, reason: r.reason, state_path: service.statePath(runId),
+        proposal_ids: s.proposals.map(p => p.id),
         stage_summary: Object.fromEntries(Object.entries(r.state.stages).map(([k, v]) => [k, v.status])) });
     }
   } else {
     const runId = flag('--run');
     if (!runId) throw new Error(`${action} 需要 --run RUN_ID`);
-    if (action === 'status' || action === 'resume') {
+    if (action === 'view') {
+      const r = service.resume(runId);
+      print({
+        ...presentResume(r),
+        '各步骤': Object.fromEntries(Object.entries(r.state.stages).map(([k, v]) => [stageLabel(k), statusLabel(v.status)])),
+        ...(r.state.stages.router?.artifact_id ? {
+          '内容类型': [...new Set(service.artifact(r.state, 'router').data.assets.map(a => assetTypeLabel(a.type)))]
+        } : {})
+      });
+    } else if (action === 'status' || action === 'resume') {
       const r = service.resume(runId);
       print({ run_id: runId, status: r.status, required_action: r.required_action, next_stage: r.next_stage,
         checkpoint: r.checkpoint, reason: r.reason ?? null,
@@ -91,10 +105,8 @@ try {
       const stage = flag('--stage'), file = flag('--output');
       if (!stage || !file) throw new Error(`${action} 需要 --stage STAGE --output JSON`);
       const bytes = fs.readFileSync(file, 'utf8');
-      const result = action === 'submit' ? service.submit(runId, stage, bytes)
-        : service.retry(runId, stage, bytes);
-      print({ run_id: runId, stage, status: result.state.stages[stage].status,
-        checkpoint: result.state.checkpoints });
+      const result = action === 'submit' ? service.submit(runId, stage, bytes) : service.retry(runId, stage, bytes);
+      print({ run_id: runId, stage, status: result.state.stages[stage].status, checkpoint: result.state.checkpoints });
     } else if (action === 'fail') {
       const stage = flag('--stage'), error = flag('--error');
       if (!stage || !error) throw new Error('fail 需要 --stage STAGE --error MESSAGE');
@@ -114,8 +126,8 @@ try {
         const result = service.recordDecision(runId, { checkpoint, decision,
           proposalId: proposalId ?? null, acceptedChanges: flag('--accepted') ? [flag('--accepted')] : [] },
           { actor: 'user_review_service' });
-        print({ run_id: runId, decision_id: result.decision.id, signature_alg: result.decision.signature_alg ?? 'legacy',
-          state_status: result.state.status });
+        print({ run_id: runId, decision_id: result.decision.id,
+          signature_alg: result.decision.signature_alg ?? 'legacy', state_status: result.state.status });
       } else if (action === 'rollback') {
         const stage = flag('--stage');
         if (!stage) throw new Error('rollback 需要 --stage STAGE');
@@ -133,6 +145,6 @@ try {
       const id = flag('--canonical');
       if (!id) throw new Error('trace 需要 --canonical ID');
       print(service.traceCanonical(runId, id));
-    } else throw new Error('可用命令: start, demo, status, resume, prepare-stage, run-stage, run-until-stop, submit, retry, fail, record-output, decision, apply, publish, rollback, trace');
+    } else throw new Error('可用命令: skill-visibility, start, demo, view, status, resume, prepare-stage, run-stage, run-until-stop, submit, retry, fail, record-output, decision, apply, publish, rollback, trace');
   }
 } catch (error) { process.stderr.write(`错误: ${error.message}\n`); process.exitCode = 1; }

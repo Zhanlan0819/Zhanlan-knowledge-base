@@ -7,48 +7,65 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_PROJECT_ROOT = path.resolve(here, '..');
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 
-export const STAGE_REGISTRY = Object.freeze({
-  router: { skill: 'skills/knowledge-router/SKILL.md', include_raw: true, artifacts: [] },
-  atomicizer: { skill: 'skills/knowledge-atomicizer/SKILL.md', include_raw: true, artifacts: ['router'] },
-  claims: { skill: 'skills/knowledge-atomicizer/SKILL.md', include_raw: true, artifacts: ['atomicizer'] },
-  family_builder: { skill: 'skills/knowledge-family-builder/SKILL.md', include_raw: false, artifacts: ['claims'] },
-  theme_builder: { skill: 'skills/knowledge-theme-builder/SKILL.md', include_raw: false, artifacts: ['family_builder', 'claims'] },
-  reconciler: { skill: 'skills/knowledge-reconciler/SKILL.md', include_raw: false, artifacts: ['theme_builder', 'family_builder', 'claims'] },
-  distiller: { skill: 'skills/knowledge-distiller/SKILL.md', include_raw: true, artifacts: ['theme_builder', 'family_builder', 'claims', 'reconciler'] },
-  proposal: { skill: 'skills/knowledge-distiller/SKILL.md', include_raw: true, artifacts: ['distiller', 'theme_builder', 'family_builder', 'claims'] },
-  skill_candidate: { skill: 'skills/knowledge-skill-builder/SKILL.md', include_raw: false, artifacts: ['canonical', 'claims'] },
-  skill_builder: { skill: 'skills/knowledge-skill-builder/SKILL.md', include_raw: false, artifacts: ['skill_candidate', 'canonical'] },
-  evaluator: { skill: 'skills/knowledge-evaluator/SKILL.md', include_raw: false, artifacts: ['skill_builder', 'skill_candidate'] }
-});
+function readRegistry(projectRoot) {
+  const file = path.resolve(projectRoot, 'skills/knowledge-orchestrator/stages.json');
+  const registry = JSON.parse(fs.readFileSync(file, 'utf8'));
+  if (!registry?.stages || typeof registry.stages !== 'object') throw new Error('stages.json 缺少 stages');
+  return registry;
+}
 
-export function stageDefinition(stage) {
-  const def = STAGE_REGISTRY[stage];
+export function stageDefinition(stage, { projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
+  const def = readRegistry(projectRoot).stages[stage];
   if (!def) throw new Error(`阶段 ${stage} 不是模型执行阶段；它可能是系统/受保护阶段`);
   return def;
 }
 
-export function loadStageSkill(stage, { projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
-  const def = stageDefinition(stage);
-  const file = path.resolve(projectRoot, def.skill);
-  const root = path.resolve(projectRoot) + path.sep;
-  if (!file.startsWith(root)) throw new Error(`非法 Skill 路径: ${def.skill}`);
-  const text = fs.readFileSync(file, 'utf8');
-  return { path: def.skill, absolute_path: file, text, sha256: sha(text) };
+function safeResolve(projectRoot, relative) {
+  const root = path.resolve(projectRoot);
+  const resolved = path.resolve(root, relative);
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) throw new Error(`非法内部指令路径: ${relative}`);
+  return resolved;
 }
 
-export function buildStageContext(service, state, stage) {
-  const def = stageDefinition(stage);
+export function loadStageInstruction(stage, { projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
+  const def = stageDefinition(stage, { projectRoot });
+  const preferred = safeResolve(projectRoot, def.instruction);
+  const legacy = def.legacy_skill ? safeResolve(projectRoot, def.legacy_skill) : null;
+  const file = fs.existsSync(preferred) ? preferred : legacy && fs.existsSync(legacy) ? legacy : null;
+  if (!file) throw new Error(`找不到 ${stage} 内部阶段指令；请运行“安装_v0.4_单总控.bat”或检查 ${def.instruction}`);
+  const text = fs.readFileSync(file, 'utf8');
+  return {
+    path: path.relative(path.resolve(projectRoot), file).replaceAll(path.sep, '/'),
+    intended_path: def.instruction,
+    label_zh: def.label_zh ?? '内部处理步骤',
+    legacy_fallback: file === legacy,
+    text,
+    sha256: sha(text)
+  };
+}
+
+export function specialistVisibilityReport({ projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
+  const registry = readRegistry(projectRoot);
+  const legacy = [...new Set(Object.values(registry.stages).map(x => x.legacy_skill).filter(Boolean))];
+  const visible = legacy.filter(relative => fs.existsSync(safeResolve(projectRoot, relative)));
+  const internal = [...new Set(Object.values(registry.stages).map(x => x.instruction))]
+    .filter(relative => fs.existsSync(safeResolve(projectRoot, relative)));
+  return {
+    orchestrator: 'skills/knowledge-orchestrator/SKILL.md',
+    visible_specialist_skill_files: visible,
+    internal_stage_instruction_files: internal,
+    single_orchestrator_ready: visible.length === 0 && internal.length > 0
+  };
+}
+
+export function buildStageContext(service, state, stage, { projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
+  const def = stageDefinition(stage, { projectRoot });
   const artifacts = {};
-  for (const name of def.artifacts) {
+  for (const name of def.artifacts ?? []) {
     const record = state.stages[name];
     if (!record?.artifact_id) continue;
     const envelope = service.artifact(state, name);
-    artifacts[name] = {
-      artifact_id: envelope.artifact_id,
-      sha256: record.sha256,
-      version: envelope.version,
-      data: envelope.data
-    };
+    artifacts[name] = { artifact_id: envelope.artifact_id, sha256: record.sha256, version: envelope.version, data: envelope.data };
   }
   const context = {
     run_id: state.run_id,
