@@ -1,0 +1,21 @@
+node_modules/
+.tmp/
+.env
+.env.*
+*.log
+*.bak
+*.pre-v*.bak
+.DS_Store
+Thumbs.db
+
+# 本地运行数据与用户内容
+store/
+data/
+outputs/
+workflows/
+raw/
+runs/
+
+# 私钥
+*.private.pem
+review-private*.pem
