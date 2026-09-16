@@ -1,0 +1,83 @@
+{
+  "schema_version": "0.6.1",
+  "description": "知识整理总控内部阶段注册表。宿主只发现知识整理总控；其它阶段是内部说明文件。",
+  "stages": {
+    "router": {
+      "instruction": "skills/knowledge-orchestrator/stages/router.md",
+      "include_raw": true,
+      "artifacts": [],
+      "label_zh": "内容分流",
+      "review_policy": "gate_only"
+    },
+    "atomicizer": {
+      "instruction": "skills/knowledge-orchestrator/stages/atomicizer.md",
+      "include_raw": true,
+      "artifacts": ["router"],
+      "label_zh": "知识拆解",
+      "review_policy": "auto"
+    },
+    "claims": {
+      "instruction": "skills/knowledge-orchestrator/stages/atomicizer.md",
+      "include_raw": true,
+      "artifacts": ["atomicizer"],
+      "label_zh": "主张提取",
+      "review_policy": "auto"
+    },
+    "family_builder": {
+      "instruction": "skills/knowledge-orchestrator/stages/family-builder.md",
+      "include_raw": false,
+      "artifacts": ["claims"],
+      "label_zh": "同类知识归组",
+      "review_policy": "auto"
+    },
+    "theme_builder": {
+      "instruction": "skills/knowledge-orchestrator/stages/theme-builder.md",
+      "include_raw": false,
+      "artifacts": ["family_builder", "claims"],
+      "label_zh": "主题整理",
+      "review_policy": "milestone_or_gate"
+    },
+    "reconciler": {
+      "instruction": "skills/knowledge-orchestrator/stages/reconciler.md",
+      "include_raw": false,
+      "artifacts": ["theme_builder", "family_builder", "claims"],
+      "label_zh": "重复、补充与冲突检查",
+      "review_policy": "gate_only"
+    },
+    "distiller": {
+      "instruction": "skills/knowledge-orchestrator/stages/distiller.md",
+      "include_raw": true,
+      "artifacts": ["theme_builder", "family_builder", "claims", "reconciler"],
+      "label_zh": "知识蒸馏",
+      "review_policy": "auto"
+    },
+    "proposal": {
+      "instruction": "skills/knowledge-orchestrator/stages/distiller.md",
+      "include_raw": true,
+      "artifacts": ["distiller", "theme_builder", "family_builder", "claims"],
+      "label_zh": "生成待确认提案",
+      "review_policy": "hard_gate"
+    },
+    "skill_candidate": {
+      "instruction": "skills/knowledge-orchestrator/stages/skill-builder.md",
+      "include_raw": false,
+      "artifacts": ["canonical", "claims"],
+      "label_zh": "能力候选筛选",
+      "review_policy": "hard_gate"
+    },
+    "skill_builder": {
+      "instruction": "skills/knowledge-orchestrator/stages/skill-builder.md",
+      "include_raw": false,
+      "artifacts": ["skill_candidate", "canonical"],
+      "label_zh": "能力规则构建",
+      "review_policy": "auto"
+    },
+    "evaluator": {
+      "instruction": "skills/knowledge-orchestrator/stages/evaluator.md",
+      "include_raw": false,
+      "artifacts": ["skill_builder", "skill_candidate"],
+      "label_zh": "实际任务评测",
+      "review_policy": "hard_gate"
+    }
+  }
+}

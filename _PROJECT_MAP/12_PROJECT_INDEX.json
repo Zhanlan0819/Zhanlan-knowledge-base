@@ -1,0 +1,1363 @@
+{
+  "project_root": "D:/360MoveData/Users/l2320/Desktop/胖胖星/00-知识库/Zhanlan/knowledge-system",
+  "as_of": "2026-09-15",
+  "files": [
+    {
+      "path": "MVP与验收.md",
+      "type": "Markdown",
+      "role": "v0.1 开发顺序与验收基线，自报非最新",
+      "category": "历史/参考",
+      "core": false,
+      "called_by": [
+        "人"
+      ],
+      "calls": [
+        "架构与阶段契约.md",
+        "README.md"
+      ],
+      "workflow_stage": [
+        "历史说明"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "README.md",
+      "type": "Markdown",
+      "role": "v0.2 用法/边界/CLI 操作说明，不由程序读取",
+      "category": "说明",
+      "core": false,
+      "called_by": [
+        "人/Agent 按需"
+      ],
+      "calls": [
+        "架构与阶段契约.md",
+        "研究与映射.md",
+        "schemas/*"
+      ],
+      "workflow_stage": [
+        "说明"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "examples/mixed-run/raw/raw_82192282f5968b58.json",
+      "type": "JSON",
+      "role": "演示 RAW 的完整 SHA/字节数元数据",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/pipeline.js:ingest",
+        "src/workflow.js:loadState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "RAW"
+      ],
+      "reads": [
+        "RAW bytes"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/raw/raw_82192282f5968b58.txt",
+      "type": "TXT",
+      "role": "演示 RAW 原文字节；与 fixture 内容相同",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/pipeline.js:ingest",
+        "src/workflow.js:loadState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "RAW"
+      ],
+      "reads": [
+        "fixtures/mixed.txt"
+      ],
+      "writes": [
+        "自身 TXT"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/runs/run_64c380d8f6d5f6f8.json",
+      "type": "JSON",
+      "role": "演示 v0.1 建议快照：4 assets、1 Claim/Family/Theme/Proposal",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/pipeline.js:ingest",
+        "src/workflow-cli.js:demo"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "v0.1 建议"
+      ],
+      "reads": [
+        "fixture 标注"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/AUDIT.jsonl",
+      "type": "JSONL",
+      "role": "此次演示 intake→proposal 九条追加审计事件",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:audit",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "审计"
+      ],
+      "reads": [
+        "阶段动作"
+      ],
+      "writes": [
+        "自身 JSONL"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/RUN_STATE.json",
+      "type": "JSON",
+      "role": "此次演示当前状态：proposal waiting_review，Gate D 待审",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState/loadState",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态",
+        "恢复"
+      ],
+      "reads": [
+        "各阶段产物"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/atomicizer/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 atomicizer v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "atomicizer"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/claims/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 claims v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "claims"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/distiller/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 distiller v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "distiller"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/family_builder/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 family_builder v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "family_builder"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/intake/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 intake v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "intake"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/proposal/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 proposal v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "proposal"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/reconciler/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 reconciler v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "reconciler"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/router/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 router v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "router"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/artifacts/theme_builder/v1.json",
+      "type": "JSON",
+      "role": "fixture_adapter 的 theme_builder v1 envelope，含 data/上游指纹",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js（生成/恢复）",
+        "样例说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "theme_builder"
+      ],
+      "reads": [
+        "前一阶段 Artifact/fixture 建议"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读（非历史）"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033009-4f190066-15e1-49b1-8215-0108f64fe976.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033015-eeaafeb9-a3b9-4947-9362-ad84aa8fe53a.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033021-097ba937-aaff-4837-a21f-034c408b2a50.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033026-5c19ab66-dc8f-41f7-80fa-c33c93b76bc1.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033031-e4c52362-0624-4c19-8632-e34086d0e61c.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033036-c2d36284-0898-4e1b-8076-422536ed070c.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033041-bfdcbfc8-ea8c-48ed-b713-03296705ba8d.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033046-4a964ac9-dfd1-416c-9d00-bee62680b249.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/mixed-run/workflows/wf_d4b5afdd-aca5-4663-b263-da0520994fe8/state-history/1789466033051-37c18c50-7d2d-4db7-b5ab-d7f092d54f36.json",
+      "type": "JSON",
+      "role": "此次演示的追加式 RUN_STATE 历史快照之一（九次提交中一时点）",
+      "category": "保存样例",
+      "core": false,
+      "called_by": [
+        "src/workflow.js:saveState"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态历史"
+      ],
+      "reads": [
+        "提交时内存 state"
+      ],
+      "writes": [
+        "自身 JSON"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "扫描"
+    },
+    {
+      "path": "examples/混合内容运行演示.md",
+      "type": "Markdown",
+      "role": "保存一次 fixture_adapter 运行、Gate D 停点证据",
+      "category": "样例说明",
+      "core": false,
+      "called_by": [
+        "人"
+      ],
+      "calls": [
+        "examples/mixed-run/*"
+      ],
+      "workflow_stage": [
+        "示例"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "fixtures/mixed.annotations.json",
+      "type": "JSON",
+      "role": "4 parts + 1 canonical proposal 的外部标注",
+      "category": "测试数据",
+      "core": false,
+      "called_by": [
+        "tests/*.test.js",
+        "npm demo",
+        "npm workflow-demo"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "入库",
+        "测试"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "fixtures/mixed.txt",
+      "type": "TXT",
+      "role": "混合知识/todo/idea/copy 的 UTF-8 输入",
+      "category": "测试数据",
+      "core": false,
+      "called_by": [
+        "tests/*.test.js",
+        "npm demo",
+        "npm workflow-demo"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "入库",
+        "测试"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "fixtures/skill-candidate.json",
+      "type": "JSON",
+      "role": "v0.1 gate 命令的示例候选，Claim ID 非真实来源",
+      "category": "测试数据",
+      "core": false,
+      "called_by": [
+        "README.md 示例"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "候选示例"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "package-lock.json",
+      "type": "JSON",
+      "role": "锁定 Ajv 8.20.0 及其 4 个子依赖",
+      "category": "配置",
+      "core": false,
+      "called_by": [
+        "npm install"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "依赖安装"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "package.json",
+      "type": "JSON",
+      "role": "ES module、npm test/demo/workflow-demo、Ajv 依赖",
+      "category": "配置",
+      "core": false,
+      "called_by": [
+        "npm"
+      ],
+      "calls": [
+        "src/cli.js",
+        "src/workflow-cli.js",
+        "tests/*.test.js"
+      ],
+      "workflow_stage": [
+        "构建",
+        "入口"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "中",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "schemas/annotations.schema.json",
+      "type": "JSON",
+      "role": "外部 annotations 期望形状；当前代码未编译/验证整份 Schema",
+      "category": "Schema",
+      "core": false,
+      "called_by": [
+        "README.md（说明）"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "入库输入"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "中",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "schemas/artifact-envelope.schema.json",
+      "type": "JSON",
+      "role": "带版本、身份、输入指纹的阶段 Artifact 外壳",
+      "category": "Schema",
+      "core": true,
+      "called_by": [
+        "src/workflow.js"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "提交",
+        "恢复"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "schemas/paired-evaluation.schema.json",
+      "type": "JSON",
+      "role": "独立 paired 投票记录草案；当前执行代码未加载",
+      "category": "Schema",
+      "core": false,
+      "called_by": [
+        "研究/说明"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "评测参考"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "schemas/run.schema.json",
+      "type": "JSON",
+      "role": "v0.1 run 形状；其 $defs 被 workflow-artifacts 引用，ingest 自身未 Ajv 验此 Schema",
+      "category": "Schema",
+      "core": true,
+      "called_by": [
+        "src/workflow.js via workflow-artifacts"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "v0.1",
+        "阶段 Schema"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "schemas/skill-candidate.schema.json",
+      "type": "JSON",
+      "role": "晋级/RIA 子结构；workflow-artifacts 用其 properties",
+      "category": "Schema",
+      "core": true,
+      "called_by": [
+        "src/workflow.js via workflow-artifacts"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "Skill 候选"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "schemas/workflow-artifacts.schema.json",
+      "type": "JSON",
+      "role": "14 阶段候选数据形状；引用 run 和候选子 Schema",
+      "category": "Schema",
+      "core": true,
+      "called_by": [
+        "src/workflow.js"
+      ],
+      "calls": [
+        "schemas/run.schema.json",
+        "schemas/skill-candidate.schema.json"
+      ],
+      "workflow_stage": [
+        "全阶段"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "核心不可随意修改",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "schemas/workflow-state.schema.json",
+      "type": "JSON",
+      "role": "RUN_STATE、stage/checkpoint/decision 状态形状",
+      "category": "Schema",
+      "core": true,
+      "called_by": [
+        "src/workflow.js"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "状态",
+        "审批",
+        "恢复"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-atomicizer/SKILL.md",
+      "type": "Markdown",
+      "role": "两阶段原句 atom/Claim、来源状态",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "orchestrator（设计）"
+      ],
+      "calls": [
+        "研究与映射.md"
+      ],
+      "workflow_stage": [
+        "atomicizer",
+        "claims"
+      ],
+      "reads": [
+        "router/RAW"
+      ],
+      "writes": [
+        "atomicizer/claims 候选"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-distiller/SKILL.md",
+      "type": "Markdown",
+      "role": "证据回溯蒸馏并另交 Proposal",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "orchestrator（设计）"
+      ],
+      "calls": [
+        "研究与映射.md"
+      ],
+      "workflow_stage": [
+        "distiller",
+        "proposal"
+      ],
+      "reads": [
+        "Themes/Families/Claims/RAW"
+      ],
+      "writes": [
+        "distiller/proposal 候选"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-evaluator/SKILL.md",
+      "type": "Markdown",
+      "role": "任务 baseline/paired/keep-revert 审阅",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "orchestrator（设计）"
+      ],
+      "calls": [
+        "研究与映射.md"
+      ],
+      "workflow_stage": [
+        "evaluator"
+      ],
+      "reads": [
+        "draft/真实输出"
+      ],
+      "writes": [
+        "evaluations 候选"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-family-builder/SKILL.md",
+      "type": "Markdown",
+      "role": "同一主张分族；保留全部 Claim ID",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "orchestrator（设计）"
+      ],
+      "calls": [
+        "研究与映射.md"
+      ],
+      "workflow_stage": [
+        "family_builder"
+      ],
+      "reads": [
+        "Claims"
+      ],
+      "writes": [
+        "families 候选"
+      ],
+      "risk": "中",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-orchestrator/SKILL.md",
+      "type": "Markdown",
+      "role": "Agent 总入口：resume/Gate/按阶段载 specialist/submit/禁止 AI 正式写",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "宿主 Skill 发现（待确认）"
+      ],
+      "calls": [
+        "架构与阶段契约.md",
+        "当前 specialist SKILL.md（提示词级）"
+      ],
+      "workflow_stage": [
+        "编排",
+        "全阶段"
+      ],
+      "reads": [
+        "RUN_STATE、阶段规则（若 Agent 遵从）"
+      ],
+      "writes": [
+        "候选 JSON/用户停点（若 Agent 遵从）"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-reconciler/SKILL.md",
+      "type": "Markdown",
+      "role": "七类关系、时间/场景/冲突判断",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "orchestrator（设计）"
+      ],
+      "calls": [
+        "研究与映射.md"
+      ],
+      "workflow_stage": [
+        "reconciler"
+      ],
+      "reads": [
+        "Themes/Claims"
+      ],
+      "writes": [
+        "relations 候选"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-router/SKILL.md",
+      "type": "Markdown",
+      "role": "RAW 语义拆件、八类资产、风险/待整理",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "orchestrator（设计）",
+        "宿主可能单独触发"
+      ],
+      "calls": [
+        "研究与映射.md"
+      ],
+      "workflow_stage": [
+        "router"
+      ],
+      "reads": [
+        "RAW"
+      ],
+      "writes": [
+        "router 候选"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-skill-builder/SKILL.md",
+      "type": "Markdown",
+      "role": "Canon 后晋级/RIA 与草稿",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "orchestrator（设计）"
+      ],
+      "calls": [
+        "研究与映射.md"
+      ],
+      "workflow_stage": [
+        "skill_candidate",
+        "skill_builder"
+      ],
+      "reads": [
+        "Canonical/Claims"
+      ],
+      "writes": [
+        "candidate/draft 候选"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "skills/knowledge-theme-builder/SKILL.md",
+      "type": "Markdown",
+      "role": "问题型 Theme 和纳入排除、跨标签",
+      "category": "Agent 指令",
+      "core": true,
+      "called_by": [
+        "orchestrator（设计）"
+      ],
+      "calls": [
+        "研究与映射.md"
+      ],
+      "workflow_stage": [
+        "theme_builder"
+      ],
+      "reads": [
+        "Families"
+      ],
+      "writes": [
+        "themes 候选"
+      ],
+      "risk": "中",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "src/cli.js",
+      "type": "JavaScript",
+      "role": "v0.1 ingest/paired/gate 旁路入口",
+      "category": "CLI",
+      "core": false,
+      "called_by": [
+        "操作者",
+        "package.json scripts"
+      ],
+      "calls": [
+        "src/pipeline.js"
+      ],
+      "workflow_stage": [
+        "v0.1"
+      ],
+      "reads": [
+        "TXT、annotations、candidate、votes"
+      ],
+      "writes": [
+        "CLI JSON/错误；ingest 写 store"
+      ],
+      "risk": "中",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "src/pipeline.js",
+      "type": "JavaScript",
+      "role": "v0.1 ingest 从标注生成建议并保存 RAW/run；候选门禁和 paired 汇总",
+      "category": "执行核心",
+      "core": true,
+      "called_by": [
+        "src/cli.js",
+        "src/workflow.js",
+        "tests/pipeline.test.js"
+      ],
+      "calls": [],
+      "workflow_stage": [
+        "入库",
+        "候选",
+        "评测"
+      ],
+      "reads": [
+        "输入 bytes、annotations、已有 RAW/run"
+      ],
+      "writes": [
+        "raw/*.txt/json、runs/*.json、建议对象"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "src/workflow-cli.js",
+      "type": "JavaScript",
+      "role": "v0.2 命令分发；demo 用 fixture_adapter 逐段提交；审阅命令 TTY/密钥",
+      "category": "CLI",
+      "core": true,
+      "called_by": [
+        "package.json scripts",
+        "操作者"
+      ],
+      "calls": [
+        "src/workflow.js"
+      ],
+      "workflow_stage": [
+        "入口",
+        "全阶段"
+      ],
+      "reads": [
+        "TXT、annotations、阶段 JSON、环境密钥、TTY"
+      ],
+      "writes": [
+        "CLI JSON/错误；经 service 写 store"
+      ],
+      "risk": "高",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "src/workflow.js",
+      "type": "JavaScript",
+      "role": "WorkflowService 阶段/状态/Gate/签名/产物/恢复",
+      "category": "执行核心",
+      "core": true,
+      "called_by": [
+        "src/workflow-cli.js",
+        "tests/workflow.test.js"
+      ],
+      "calls": [
+        "src/pipeline.js",
+        "schemas/run.schema.json",
+        "schemas/skill-candidate.schema.json",
+        "schemas/workflow-artifacts.schema.json",
+        "schemas/artifact-envelope.schema.json",
+        "schemas/workflow-state.schema.json"
+      ],
+      "workflow_stage": [
+        "全阶段"
+      ],
+      "reads": [
+        "--store RAW/状态/产物/审批/评测输出"
+      ],
+      "writes": [
+        "RUN_STATE/历史/AUDIT/阶段产物/canonical/formal-skills"
+      ],
+      "risk": "核心不可随意修改",
+      "source_of_truth": true,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "tests/pipeline.test.js",
+      "type": "JavaScript",
+      "role": "7 个 v0.1 入库、锚点、只增、候选、投票测试",
+      "category": "测试",
+      "core": false,
+      "called_by": [
+        "npm test"
+      ],
+      "calls": [
+        "src/pipeline.js",
+        "fixtures/mixed.txt",
+        "fixtures/mixed.annotations.json"
+      ],
+      "workflow_stage": [
+        "验证 v0.1"
+      ],
+      "reads": [
+        "fixtures/临时 store"
+      ],
+      "writes": [
+        "测试结果；临时目录随后删除"
+      ],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    },
+    {
+      "path": "tests/workflow.test.js",
+      "type": "JavaScript",
+      "role": "19 个状态/越级/Gate/签名/回滚/评测等服务测试",
+      "category": "测试",
+      "core": false,
+      "called_by": [
+        "npm test"
+      ],
+      "calls": [
+        "src/workflow.js",
+        "fixtures/mixed.txt",
+        "fixtures/mixed.annotations.json"
+      ],
+      "workflow_stage": [
+        "验证全阶段"
+      ],
+      "reads": [
+        "fixtures/临时 store"
+      ],
+      "writes": [
+        "测试结果；临时目录随后删除"
+      ],
+      "risk": "中",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "架构与阶段契约.md",
+      "type": "Markdown",
+      "role": "v0.2 状态、阶段、Gate、恢复和安全边界；orchestrator 链接",
+      "category": "说明/操作参考",
+      "core": false,
+      "called_by": [
+        "skills/knowledge-orchestrator/SKILL.md",
+        "人"
+      ],
+      "calls": [
+        "研究与映射.md",
+        "schemas/workflow-state.schema.json",
+        "schemas/workflow-artifacts.schema.json"
+      ],
+      "workflow_stage": [
+        "Agent 操作参考"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "中",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": true,
+      "depth": "深读"
+    },
+    {
+      "path": "研究与映射.md",
+      "type": "Markdown",
+      "role": "四个外部仓库机制研究、v0.1 映射；旧实现边界并非当前 runtime",
+      "category": "历史/参考",
+      "core": false,
+      "called_by": [
+        "specialist SKILL.md",
+        "人"
+      ],
+      "calls": [
+        "../reference-repos/*（文档链接，非代码依赖）"
+      ],
+      "workflow_stage": [
+        "来源解释"
+      ],
+      "reads": [],
+      "writes": [],
+      "risk": "低",
+      "source_of_truth": false,
+      "full_source_needed_for_edit": false,
+      "depth": "深读"
+    }
+  ],
+  "notes": [
+    "called_by 中的 Agent/宿主关系为设计或待确认，不表示代码加载",
+    "reads/writes 为文件或数据类别；Schema 本身不写输出"
+  ]
+}

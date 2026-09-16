@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/kb/run.schema.json",
+  "title": "Knowledge System Runtime Types",
+  "$defs": {
+    "anchor": {
+      "type": "object",
+      "required": ["start", "end", "quote", "offset_unit"],
+      "additionalProperties": false,
+      "properties": {
+        "start": {"type": "integer", "minimum": 0},
+        "end": {"type": "integer", "minimum": 1},
+        "quote": {"type": "string", "minLength": 1},
+        "offset_unit": {"const": "UTF-16"}
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": ["id", "raw_id", "type", "anchor", "parent_tag", "child_tag", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "raw_id": {"type": "string", "minLength": 1},
+        "type": {"enum": ["knowledge", "case", "copy", "idea", "todo", "project", "external", "unorganized"]},
+        "anchor": {"$ref": "#/$defs/anchor"},
+        "parent_tag": {"type": ["string", "null"]},
+        "child_tag": {"type": ["string", "null"]},
+        "status": {"enum": ["provisional", "unorganized"]}
+      }
+    },
+    "atom": {
+      "type": "object",
+      "required": ["id", "asset_id", "raw_id", "anchor", "statement", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "asset_id": {"type": "string", "minLength": 1},
+        "raw_id": {"type": "string", "minLength": 1},
+        "anchor": {"$ref": "#/$defs/anchor"},
+        "statement": {"type": "string", "minLength": 1},
+        "status": {"const": "provisional"}
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["id", "atom_id", "raw_id", "anchor", "statement", "source_status", "evidence_status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "atom_id": {"type": "string", "minLength": 1},
+        "raw_id": {"type": "string", "minLength": 1},
+        "anchor": {"$ref": "#/$defs/anchor"},
+        "statement": {"type": "string", "minLength": 1},
+        "source_status": {"enum": ["explicit", "attributed", "editor_inference", "visual_unverified"]},
+        "evidence_status": {"const": "anchor_verified"}
+      }
+    },
+    "family": {
+      "type": "object",
+      "required": ["id", "key", "claim_ids", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "key": {"type": "string", "minLength": 1},
+        "claim_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "status": {"enum": ["suggested_semantic_group", "exact_group"]}
+      }
+    },
+    "theme": {
+      "type": "object",
+      "required": ["id", "name", "central_question", "inclusion", "exclusion", "family_ids", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "central_question": {"type": ["string", "null"]},
+        "inclusion": {"type": ["string", "null"]},
+        "exclusion": {"type": ["string", "null"]},
+        "family_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "status": {"const": "suggested"}
+      }
+    },
+    "relation": {
+      "type": "object",
+      "required": ["id", "from_claim_id", "to_claim_id", "type", "status", "rationale"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "from_claim_id": {"type": "string", "minLength": 1},
+        "to_claim_id": {"type": "string", "minLength": 1},
+        "type": {"enum": ["REPEATS", "REFINES", "EXTENDS", "CONTRADICTS", "RETRACTS", "ORIGIN", "APPLICATION"]},
+        "status": {"const": "suggested"},
+        "rationale": {"type": ["string", "null"]}
+      }
+    },
+    "proposal": {
+      "type": "object",
+      "required": ["id", "target", "text", "supporting_claim_ids", "status", "conflict_claim_ids"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "target": {"const": "canonical_knowledge"},
+        "text": {"type": "string", "minLength": 1},
+        "supporting_claim_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "status": {"const": "pending_human_review"},
+        "conflict_claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+      }
+    }
+  },
+  "type": "object"
+}

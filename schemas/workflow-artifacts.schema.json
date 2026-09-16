@@ -1,0 +1,507 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/kb/workflow-artifacts.schema.json",
+  "title": "Knowledge System Stage Contracts v0.6.1",
+  "$defs": {
+    "intake": {
+      "type": "object",
+      "required": [
+        "raw_id",
+        "sha256",
+        "bytes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "raw_id": {
+          "type": "string",
+          "pattern": "^raw_[a-f0-9]{16}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "router": {
+      "type": "object",
+      "required": [
+        "assets",
+        "risk_flags"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://local.invalid/kb/run.schema.json#/$defs/asset"
+          }
+        },
+        "risk_flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "unmapped_input",
+              "ambiguous_route",
+              "sensitive_source",
+              "high_stakes"
+            ]
+          }
+        }
+      }
+    },
+    "atomicizer": {
+      "type": "object",
+      "required": [
+        "atoms"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "atoms": {
+          "type": "array",
+          "items": {
+            "$ref": "https://local.invalid/kb/run.schema.json#/$defs/atom"
+          }
+        },
+        "unresolved_asset_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "required": [
+        "claims"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claims": {
+          "type": "array",
+          "items": {
+            "$ref": "https://local.invalid/kb/run.schema.json#/$defs/claim"
+          }
+        }
+      }
+    },
+    "family_builder": {
+      "type": "object",
+      "required": [
+        "families"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "families": {
+          "type": "array",
+          "items": {
+            "$ref": "https://local.invalid/kb/run.schema.json#/$defs/family"
+          }
+        }
+      }
+    },
+    "theme_builder": {
+      "type": "object",
+      "required": [
+        "themes",
+        "major_change"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "themes": {
+          "type": "array",
+          "items": {
+            "$ref": "https://local.invalid/kb/run.schema.json#/$defs/theme"
+          }
+        },
+        "major_change": {
+          "enum": [
+            "none",
+            "new_core",
+            "merge_core",
+            "split_core"
+          ]
+        }
+      }
+    },
+    "reconciler": {
+      "type": "object",
+      "required": [
+        "relations",
+        "version_judgement"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "https://local.invalid/kb/run.schema.json#/$defs/relation"
+          }
+        },
+        "version_judgement": {
+          "type": "boolean"
+        }
+      }
+    },
+    "distiller": {
+      "type": "object",
+      "required": [
+        "distillations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "distillations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "theme_id",
+              "supporting_claim_ids",
+              "text",
+              "status"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "theme_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "supporting_claim_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "const": "provisional"
+              }
+            }
+          }
+        }
+      }
+    },
+    "proposal": {
+      "type": "object",
+      "required": [
+        "proposals"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "proposals": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://local.invalid/kb/run.schema.json#/$defs/proposal"
+          }
+        }
+      }
+    },
+    "canonical": {
+      "type": "object",
+      "required": [
+        "canonical_versions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "canonical_versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "proposal_id",
+              "text",
+              "approved_decision_id",
+              "source_claim_ids"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "proposal_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "approved_decision_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_claim_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "skill_candidate": {
+      "type": "object",
+      "required": [
+        "candidates"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "canonical_ids",
+              "verification",
+              "promotion",
+              "ria",
+              "supporting_claim_ids"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "canonical_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "verification": {
+                "$ref": "https://local.invalid/kb/skill-candidate.schema.json#/properties/verification"
+              },
+              "promotion": {
+                "$ref": "https://local.invalid/kb/skill-candidate.schema.json#/properties/promotion"
+              },
+              "ria": {
+                "$ref": "https://local.invalid/kb/skill-candidate.schema.json#/properties/ria"
+              },
+              "supporting_claim_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "skill_builder": {
+      "type": "object",
+      "required": [
+        "drafts"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "drafts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "candidate_id",
+              "skill_md"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "candidate_id": {
+                "type": "string"
+              },
+              "skill_md": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "evaluator": {
+      "type": "object",
+      "required": [
+        "evaluations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "evaluations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "draft_id",
+              "test_case_ids",
+              "test_results",
+              "paired_judgements",
+              "recommendation"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "draft_id": {
+                "type": "string"
+              },
+              "test_case_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "test_results": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "case_id",
+                    "with_skill_output_id",
+                    "baseline_output_id",
+                    "assertion_passed"
+                  ],
+                  "properties": {
+                    "case_id": {
+                      "type": "string"
+                    },
+                    "with_skill_output_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "baseline_output_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "assertion_passed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "paired_judgements": {
+                "type": "array",
+                "minItems": 3,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "judge_id",
+                    "vote",
+                    "rationale",
+                    "before_output_id",
+                    "after_output_id"
+                  ],
+                  "properties": {
+                    "judge_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "vote": {
+                      "enum": [
+                        "better",
+                        "worse",
+                        "tie"
+                      ]
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "before_output_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "after_output_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "recommendation": {
+                "enum": [
+                  "keep",
+                  "revert"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "skill_publish": {
+      "type": "object",
+      "required": [
+        "formal_skills"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "formal_skills": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "draft_id",
+              "evaluation_id",
+              "approved_decision_id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "draft_id": {
+                "type": "string"
+              },
+              "evaluation_id": {
+                "type": "string"
+              },
+              "approved_decision_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  }
+}

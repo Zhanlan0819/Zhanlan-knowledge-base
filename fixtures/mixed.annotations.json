@@ -1,0 +1,29 @@
+{
+  "parts": [
+    {
+      "type": "knowledge",
+      "quote": "知识应该进入行动和反馈。",
+      "source_status": "explicit",
+      "family": "知识应用",
+      "theme": "知识应用与反馈",
+      "central_question": "知识怎样真正进入行动与反馈？",
+      "inclusion": "与知识应用、行动、反馈有关的判断",
+      "exclusion": "单纯保存资料或无关待办"
+    },
+    {
+      "type": "todo",
+      "quote": "明天整理直播脚本。"
+    },
+    {
+      "type": "copy",
+      "quote": "这句开场可以保留参考。"
+    }
+  ],
+  "relations": [],
+  "proposals": [
+    {
+      "text": "知识只有进入真实行动和反馈，才算完成应用闭环。",
+      "claim_parts": [0]
+    }
+  ]
+}
