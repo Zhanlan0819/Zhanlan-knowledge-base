@@ -16,7 +16,7 @@ export const STAGE_LABELS = Object.freeze({
   claims: '主张提取',
   family_builder: '同类知识归组',
   theme_builder: '主题整理',
-  reconciler: '冲突与版本检查',
+  reconciler: '重复、补充与冲突检查',
   distiller: '知识蒸馏',
   proposal: '生成待确认提案',
   canonical: '正式知识入库',
@@ -43,6 +43,7 @@ export const STATUS_LABELS = Object.freeze({
 export const ACTION_LABELS = Object.freeze({
   execute: '执行当前步骤',
   retry: '重做当前步骤',
+  continue: '等待你继续',
   review: '等待你确认',
   apply_approved_proposals: '写入已批准的正式知识',
   publish_approved_skill: '发布已批准的正式能力',
@@ -69,7 +70,7 @@ export const RELATION_LABELS = Object.freeze({
 });
 
 const INTERNAL_ID_PATTERNS = [
-  /^(?:raw|wf|run|asset|atom|claim|family|theme|proposal|canonical|candidate|draft|eval|attempt)_[A-Za-z0-9_-]+$/,
+  /^(?:raw|wf|run|asset|atom|claim|family|theme|proposal|canonical|candidate|draft|eval|attempt|artifact|decision|output)_[A-Za-z0-9_-]+$/,
   /^organized-[A-Za-z0-9-]+$/,
   /^(?:content|method|business|knowledge|source|case|copy|idea|todo|project)-[a-z0-9-]+$/
 ];
@@ -100,7 +101,7 @@ export function humanReadableTitle(entity, { fallback = '未命名内容', maxLe
   if (!entity || typeof entity !== 'object') return fallback;
   const candidates = [
     entity.title, entity.name, entity.label, entity.question, entity.center_question,
-    entity.summary, entity.statement, entity.text, entity.description, entity.quote
+    entity.central_question, entity.summary, entity.statement, entity.text, entity.description, entity.quote
   ];
   for (const value of candidates) {
     const text = cleanText(value);
@@ -114,7 +115,10 @@ export function presentResume(resumed) {
     '运行状态': statusLabel(resumed.status),
     '当前步骤': resumed.next_stage ? stageLabel(resumed.next_stage) : null,
     '下一步': actionLabel(resumed.required_action),
-    '需要确认': resumed.checkpoint ? gateLabel(resumed.checkpoint) : null
+    '需要确认': resumed.checkpoint ? gateLabel(resumed.checkpoint) : null,
+    ...(resumed.required_action === 'continue' && resumed.after_stage ? {
+      '刚完成': stageLabel(resumed.after_stage)
+    } : {})
   };
 }
 

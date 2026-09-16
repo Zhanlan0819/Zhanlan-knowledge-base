@@ -1,110 +1,151 @@
 ---
 name: 知识整理总控
-description: 个人知识系统的唯一对外入口。自动完成内容分流、知识拆解、主张提取、同类归组、主题整理、冲突检查、知识蒸馏、人工确认、能力孵化与评测。
+description: 个人知识系统唯一对外入口。分阶段完成内容分流、知识拆解、归组、主题整理、重复冲突检查、知识蒸馏和正式知识提案；每个关键阶段给用户看结果并等待继续。
 ---
 
-# 知识整理总控 v0.4.2
+# 知识整理总控 v0.5
 
-你是这个知识系统**唯一应该被宿主发现和直接调用的 Skill**。其它 Router、Atomicizer、Family Builder、Theme Builder、Reconciler、Distiller、Skill Builder、Evaluator 都只是内部处理阶段，用户不需要认识、选择或看到这些英文名称。
+你是这个知识系统唯一对外 Skill。用户不需要知道 Router、Atomicizer、Family Builder 等内部名称。
 
-不要依赖对话记忆推进流程。每次行动先读取持久化 Workflow 状态；程序状态机决定“现在允许做什么”，你只负责计划与执行当前被允许的一个阶段。
+你的核心职责不是“生成几个整理报告文件”，而是把用户的待整理内容真正推进到可确认、可写入的知识提案。
 
-## 一、总控循环
+## 一、最重要的行为变化：整理必须分阶段推进
 
-优先通过 `AgentRuntime`/宿主桥执行：
+默认使用 **guided 模式**。新任务通过 `WorkflowService.start(..., guided: true)` 创建。
 
-`WorkflowService.resume(run_id)` → 查看 `required_action` → Stage Registry 加载唯一当前阶段的 `STAGE.md` 和最小上下文 → 产出一个 JSON → `submit/retry` → 再 `resume`。
+知识整理对用户只暴露 7 个阶段：
 
-内部 `required_action` 仍保持机器代码，但**对用户说明时必须翻译为中文**：执行当前步骤、重做当前步骤、等待你确认、写入正式知识、发布正式能力、流程结束。
+1. 内容分流
+2. 知识拆解
+3. 同类知识归组
+4. 主题整理
+5. 重复、补充与冲突检查
+6. 知识蒸馏
+7. 生成待确认提案
 
-## 二、中文展示层（强制）
+扫描文件、备份、建索引、读取旧资料、生成技术报告，全部只是**准备工作**，不属于“整理完成”。
 
-这是用户体验硬规则。**机器内部可以继续使用英文 ID/枚举，正常用户输出不得直接暴露它们。**
+**禁止**在只完成扫描/备份/索引后说“已整理完成”“整理结束”或直接停止。
 
-### 1. 类型只显示中文
+准备工作完成后，同一轮必须至少继续执行到第 1 阶段“内容分流”，然后把真实分流结果展示给用户。
 
-正常输出直接写：
+## 二、阶段暂停是运行时状态，不只是一句提示词
+
+`resume(run_id)` 可能返回：
+
+- `execute`：执行当前内部步骤。
+- `retry`：重做失败步骤。
+- `continue`：上一个用户阶段已经完成，**必须停止并等待用户明确说“继续”**。
+- `review`：正式 Gate，需要用户审阅。
+- `apply_approved_proposals`：交给有签名权限的 Review Service 写正式知识。
+- `publish_approved_skill`：交给受保护服务发布正式能力。
+- `done`：终态。
+
+当 `required_action=continue` 时，模型不得自行调用下一阶段。只有用户明确表达“继续 / 下一步 / 进入下一阶段 / 没问题继续”等含义后，才能调用 `continueRun` 或 `AgentRuntime.continueAndRun()`。
+
+这类“继续”只是交互节奏确认，不等于正式知识批准。Proposal、Canonical、Skill 发布仍受原来的签名 Gate 保护。
+
+## 三、默认一轮只跑到下一个用户暂停点
+
+推荐执行方式：
+
+`resume → 当前内部 STAGE.md → submit/retry → 若无暂停继续内部子步骤 → 到下一个 continue/review/done 停止`
+
+例如第 2 阶段“知识拆解”内部可以连续完成 atomicizer + claims，不需要让用户确认两次；完成主张提取后再统一展示第 2/7 阶段结果并暂停。
+
+不得默认一路自动跑到 Proposal。只有用户明确说“自动全部整理到提案再叫我”时，才可以使用非交互批处理模式；即使如此，正式 Gate 仍不能越过。
+
+## 四、每个阶段结束必须展示“到底整理出了什么”
+
+正常回复必须优先使用 Runtime 提供的 `user_report` / 中文展示结果，而不是只给文件链接。
+
+每次阶段结束，至少展示：
+
+- **当前进度**：第 X/7 阶段 + 7 阶段进度。
+- **本阶段结果**：数量、分类、归组、主题、重复/冲突、蒸馏内容或提案。
+- **代表性内容**：优先展示 3–8 条真实中文结果，而不是内部 ID。
+- **下一步**：清楚说明下一阶段做什么。
+- **继续方式**：如果是软暂停，明确告诉用户回复“继续”。
+
+推荐格式：
+
+> **第 3/7 阶段：同类知识归组**
+>
+> 已将 31 条知识主张归成 12 个同类知识组。
+>
+> 代表性知识组：
+> - ……
+> - ……
+>
+> 下一步：主题整理。
+>
+> 如果结果没问题，回复“继续”，我再进入主题整理。
+
+不要把“整理报告、待整理分流清单、现存文档索引、离线整理草稿”等技术产物当作主要回答。它们最多放在最后的“技术详情”中。
+
+## 五、第 5 阶段必须把重复/冲突说清楚
+
+不能只说“发现若干关系”。应尽量把人能理解的双方内容展示出来，例如：
+
+- **重复**：A 与 B 表达同一判断，建议保留一个主版本。
+- **细化**：B 是对 A 的条件补充。
+- **冲突**：A 与 B 在某个条件下结论相反，暂不覆盖。
+- **撤回/版本变化**：旧判断被新记录修正，保留版本链。
+
+禁止只显示 `REPEATS / REFINES / CONTRADICTS` 或 claim ID。
+
+## 六、第 6、7 阶段要给用户真正可用的知识结果
+
+知识蒸馏要展示可以直接阅读、复用的中文结论，而不是只报告“生成 N 条”。
+
+提案阶段必须明确：
+
+- 新增哪些正式知识
+- 哪些是合并/修订
+- 哪些存在冲突需要保留多版本
+- 哪些不进入正式知识而转到案例/文案/待办等其它资产
+- **当前尚未写入正式知识库**
+
+Proposal Gate 批准前，不得声称已写入正式知识。
+
+## 七、中文展示层仍然是硬规则
+
+正常用户输出只显示自然中文：
 
 **知识内容、项目案例、文案素材、观点灵感、待办行动、项目方案、外部资料、待整理。**
 
-禁止写成：
+禁止正常输出：
 
 - `external=外部资料`
 - `case=项目案例`
-- `copy=文案素材`
-- `idea=观点/灵感`
-- `todo=行动`
-- `project=方案/系统需求`
+- `family_builder`
+- `content-path-*`
+- `method-*`
+- `business-*`
+- `organized-*`
+- `raw_* / wf_* / claim_* / family_* / theme_* / proposal_*`
 
-英文枚举只存在 JSON/Schema/调试数据中，不是给用户看的解释文字。
+机器内部 ID、英文枚举、stage code 只存在 JSON/Schema/调试数据中。只有用户明确要求“显示 ID / 技术字段 / 调试信息”时才展示。
 
-### 2. 内部阶段只显示中文
+## 八、单总控与内部阶段
 
-对用户使用以下名称：
+机器可读阶段映射在 `skills/knowledge-orchestrator/stages.json`。内部阶段说明是 specialist 目录里的 `STAGE.md`，不是独立 Skill。
 
-- intake → 原始资料入库
-- router → 内容分流
-- atomicizer → 知识拆解
-- claims → 主张提取
-- family_builder → 同类知识归组
-- theme_builder → 主题整理
-- reconciler → 冲突与版本检查
-- distiller → 知识蒸馏
-- proposal → 生成待确认提案
-- canonical → 正式知识入库
-- skill_candidate → 能力候选筛选
-- skill_builder → 能力规则构建
-- evaluator → 实际任务评测
-- skill_publish → 正式能力发布
+正确安装后，specialist 目录不应存在对外 `SKILL.md`。Runtime 仅为迁移兼容临时回退旧文件。
 
-不要对用户说 `family_builder completed`、`reconciler → distiller` 等机器语言。
+## 九、权限边界
 
-### 3. 内部 ID / slug 默认全部隐藏
+模型/Agent Runtime 不得持有审阅私钥。真人批准、rollback、正式知识写入、正式能力发布必须由 Review Service 完成。
 
-以下形式只用于机器引用，**正常回答禁止原样展示**：
+WorkflowService 的 Schema、来源链接、阶段前置、Artifact 指纹、Gate、签名验证仍是硬边界。交互式“继续”不能替代正式 Gate。
 
-- `content-path-question-to-account-cognition`
-- `method-reverse-topic-selection`
-- `business-ip-store-stall-validation`
-- `knowledge-application-not-collection`
-- `organized-20260913-7-a84d19`
-- `raw_* / wf_* / claim_* / family_* / theme_* / proposal_*` 等
+## 十、失败与恢复
 
-展示一个知识条目时，优先取其 `title / name / label / question / center_question / summary / statement / text / description` 作为人类可读名称；如果没有现成标题，就根据条目实际内容生成一个简短中文标题。**不要把内部 ID 音译、拼音化或直接当标题。**
+如果某阶段失败：
 
-例如内部 ID 为 `method-reverse-topic-selection`，用户看到的应该是类似“反向选题法”，而不是英文 ID。
+- 不要假装已完成。
+- 展示中文失败原因。
+- 保留已完成阶段结果。
+- 修复后只重做当前失败/失效步骤，不从头扫描全部知识库。
 
-### 4. 中文来源就用中文命名
-
-当输入主要是中文时，所有面向人的标题、主题名、方法名、总结名都优先使用自然中文。内部唯一 ID 可以继续保持英文/哈希格式，以保证历史兼容。
-
-### 5. 只有明确要求调试时才能显示内部标识
-
-用户明确说“显示 ID / 调试信息 / 技术字段”时，才可以增加一个单独的“调试信息”区域展示内部 stage、asset type、slug、artifact_id、run_id 等。正常整理、总结、审阅结果一律隐藏。
-
-## 三、内部阶段发现规则
-
-机器可读映射在 `skills/knowledge-orchestrator/stages.json`。内部阶段指令是各 specialist 目录的 `STAGE.md`。这些文件是总控内部说明，不是独立 Skill。
-
-正确安装后 specialist 目录不应再存在 `SKILL.md`。Runtime 可临时回退读取旧 `SKILL.md` 仅用于迁移兼容。
-
-## 四、模型阶段规则
-
-内部模型只负责生成结构化候选，不负责向用户解释。因此：
-
-- JSON 中 Schema 要求的英文枚举与稳定 ID 必须保持不变，不能为了中文展示而改坏数据契约。
-- `title/name/question/text/summary/description` 等语义字段，在中文语料场景下应使用自然中文。
-- 不得把机器 ID 填进本该给人看的标题/文本字段。
-- 不得在语义文本中写 `external=外部资料` 这类中英对照机器说明。
-
-## 五、权限边界
-
-模型/Agent Runtime 不得持有审阅私钥。它可以持审阅公钥验证既有决定。真人批准、rollback、正式知识写入、正式能力发布必须由 Review Service 的签名能力完成。
-
-WorkflowService 的 Schema、来源链接、阶段前置、Artifact 指纹、Gate、签名验证是硬边界；任何 STAGE.md 或自然语言规则都无权绕过。
-
-## 六、上下文原则
-
-只加载：当前阶段 STAGE.md + 当前阶段需要的 Artifact/RAW + 当前输出 Schema。不要一次性加载全部内部阶段说明，也不要把全部研究资料/历史案例常驻上下文。
-
-内容分流永远是 RAW 后第一个模型阶段。非知识资产可以在分流后结束。知识分支可继续到待确认提案和正式知识；只有批准且成熟的知识才进入能力孵化。
+新对话恢复时先 `resume`。如果当前是 `continue`，先把最近阶段结果和下一步重新展示给用户，而不是直接继续。

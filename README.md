@@ -1,7 +1,44 @@
-# 阿星知识库智能整理与知识蒸馏系统 · 单总控工作流 v0.4.2
+# 阿星知识库智能整理与知识蒸馏系统 · 交互式单总控 v0.5
 
 定位：所有输入先整理成合适的资产；对外只暴露「知识整理总控」一个总控 Skill。Router、Atomicizer、Family/Theme、Reconciler、Distiller、Skill Builder、Evaluator 均为总控内部阶段说明，不再作为平级 Skill 让用户手动选择。WorkflowService 负责硬状态机和 Gate，AgentRuntime 负责按当前状态只加载一个内部阶段。
 
+
+
+## v0.5：真正的分阶段交互式整理
+
+扫描、备份、索引、生成离线草稿现在只算**准备工作**，不能再被当成“整理完成”。默认 `start` 命令创建 guided run，知识整理按 7 个用户阶段推进：
+
+1. 内容分流
+2. 知识拆解（内部可连续完成原子拆解 + 主张提取）
+3. 同类知识归组
+4. 主题整理
+5. 重复、补充与冲突检查
+6. 知识蒸馏
+7. 生成待确认提案
+
+关键阶段完成后，`RUN_STATE.json` 会记录 `interaction.status=waiting_continue`，`resume()` 返回 `required_action=continue`。没有明确的用户继续动作时，下一阶段不能 `submit`。这只是交互节奏 Gate，不替代正式 Proposal/Canonical/Skill 审批。
+
+总控每个阶段必须展示真实结果：数量、分类、代表性知识、归组、主题、重复/冲突双方、蒸馏文本或提案。技术文件链接只能作为附加详情，不能替代“整理出了什么”。
+
+查看中文进度：
+
+```powershell
+node src/workflow-cli.js view --store my-store --run wf_...
+```
+
+确认进入下一阶段：
+
+```powershell
+node src/workflow-cli.js continue --store my-store --run wf_...
+```
+
+如果已经配置外部模型命令，可以一次确认并执行到下一个暂停点：
+
+```powershell
+node src/workflow-cli.js continue-run --store my-store --run wf_...
+```
+
+旧代码直接调用 `WorkflowService.start()` 时默认仍是 legacy 模式，避免破坏已有测试和自动化；总控/CLI 的真实整理入口使用 `guided: true`。
 
 ## v0.4.2：单总控 + 全中文展示层
 
@@ -29,7 +66,7 @@ node src/workflow-cli.js skill-visibility
 
 Stage Registry 从 `skills/knowledge-orchestrator/stages.json` 决定当前阶段读取哪个 `STAGE.md`。`AgentRuntime` 请求协议为 `knowledge-stage-request/v0.4.2`，字段是 `stage_instruction`，不再把内部阶段称为独立 Skill。
 
-新 run 使用 `schema_version=0.4.0`；状态 Schema 兼容 0.2/0.3/0.4。v0.4 同时保留 v0.3 的 `required_action`、Ed25519 审批签名分离和 Artifact provenance。
+引导式新 run 使用 `schema_version=0.5.0`；状态 Schema 兼容 0.2/0.3/0.4/0.5。v0.4 同时保留 v0.3 的 `required_action`、Ed25519 审批签名分离和 Artifact provenance。
 
 
 ### 中文展示规则
@@ -38,7 +75,7 @@ Stage Registry 从 `skills/knowledge-orchestrator/stages.json` 决定当前阶�
 
 类型直接显示为：**知识内容、项目案例、文案素材、观点灵感、待办行动、项目方案、外部资料、待整理**。不要显示 `external=外部资料`、`case=项目案例` 这类机器码翻译。
 
-阶段直接显示为：**内容分流、知识拆解、主张提取、同类知识归组、主题整理、冲突与版本检查、知识蒸馏、生成待确认提案、正式知识入库、能力候选筛选、能力规则构建、实际任务评测、正式能力发布**。
+阶段直接显示为：**内容分流、知识拆解、主张提取、同类知识归组、主题整理、重复、补充与冲突检查、知识蒸馏、生成待确认提案、正式知识入库、能力候选筛选、能力规则构建、实际任务评测、正式能力发布**。
 
 `content-path-*`、`method-*`、`business-*`、`knowledge-*`、`organized-*`、`raw_*`、`wf_*`、`claim_*` 等内部 ID 默认不进入正常回答。展示时优先使用条目的中文标题、问题、摘要、主张或正文；没有标题时根据实际内容生成一个简短中文标题。只有用户明确要求“调试信息/显示 ID”时才展示内部标识。
 
@@ -70,7 +107,7 @@ node src/cli.js gate --candidate fixtures/skill-candidate.json
 node src/cli.js ingest --store my-store --input my-note.txt --annotations my-note.annotations.json
 ```
 
-`annotations` 契约见 `schemas/annotations.schema.json`，样例见 `fixtures/mixed.annotations.json`。本版仍不调用 LLM：拆件、语义 Family、Theme、关系、Proposal 由外部标注输入；程序负责阶段前置、Schema、来源锚点和完整分流、引用关系、审批及依赖失效门禁。允许不同资产的锚点重叠，但 RAW 的每个非空白位置都必须被某个资产覆盖；未知内容应明确分到 `unorganized`，并触发人工 Gate A。JSON `parts` 下标从零开始；重复原文用 `occurrence` 消歧。运行结果的 `start/end` 是 UTF-16 偏移，不是字节偏移。
+`annotations` 契约见 `schemas/annotations.schema.json`，样例见 `fixtures/mixed.annotations.json`。`WorkflowService` 本身仍不调用 LLM；`AgentRuntime` 可以通过外部模型适配器执行当前阶段。程序负责阶段前置、Schema、来源锚点、引用关系、交互暂停、审批及依赖失效门禁。允许不同资产的锚点重叠，但 RAW 的每个非空白位置都必须被某个资产覆盖；未知内容应明确分到 `unorganized`，并触发人工 Gate A。JSON `parts` 下标从零开始；重复原文用 `occurrence` 消歧。运行结果的 `start/end` 是 UTF-16 偏移，不是字节偏移。
 
 新流程的阶段数据、外壳和状态契约见 `schemas/workflow-artifacts.schema.json`、`schemas/artifact-envelope.schema.json` 和 `schemas/workflow-state.schema.json`。阶段 Schema 已由运行服务实际校验；旧版 `run.schema.json` 仍为 v0.1 快照契约。每阶段的输入、完成/失败条件和 Gate 见 [架构与阶段契约](架构与阶段契约.md)。
 

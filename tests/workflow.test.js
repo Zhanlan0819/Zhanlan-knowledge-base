@@ -416,3 +416,37 @@ test('Artifact provenance accepts internal stage-instruction identity', () => {
   assert.deepEqual(result.artifact.data.assets, s.assets);
   cleanup(store);
 });
+
+
+test('guided mode pauses after user-visible phases and requires explicit continue', () => {
+  const store = temp();
+  const service = new WorkflowService(store, { reviewerSecret: secret });
+  const result = service.start({ bytes, annotations, guided: true });
+  const runId = result.run_id, s = result.suggestion;
+  service.submit(runId, 'router', { assets: s.assets, risk_flags: [] });
+  let resumed = service.resume(runId);
+  assert.equal(resumed.required_action, 'continue');
+  assert.equal(resumed.after_stage, 'router');
+  assert.equal(resumed.next_stage, 'atomicizer');
+  assert.throws(() => service.submit(runId, 'atomicizer', { atoms: s.atoms }), /等待用户继续/);
+  service.continueRun(runId, { actor: 'user_interaction' });
+  service.submit(runId, 'atomicizer', { atoms: s.atoms });
+  resumed = service.resume(runId);
+  assert.equal(resumed.required_action, 'execute');
+  assert.equal(resumed.next_stage, 'claims');
+  service.submit(runId, 'claims', { claims: s.claims });
+  resumed = service.resume(runId);
+  assert.equal(resumed.required_action, 'continue');
+  assert.equal(resumed.after_stage, 'claims');
+  assert.equal(resumed.next_stage, 'family_builder');
+  cleanup(store);
+});
+
+test('legacy start remains compatible and does not insert soft interaction pauses', () => {
+  const store = temp();
+  const { service, runId, s } = started(store);
+  service.submit(runId, 'router', { assets: s.assets, risk_flags: [] });
+  const resumed = service.resume(runId);
+  assert.notEqual(resumed.required_action, 'continue');
+  cleanup(store);
+});

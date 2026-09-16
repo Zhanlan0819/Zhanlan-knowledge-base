@@ -15,9 +15,10 @@ test('user-facing type labels are Chinese only', () => {
 
 test('machine stages and states have Chinese display labels', () => {
   assert.equal(stageLabel('family_builder'), '同类知识归组');
-  assert.equal(stageLabel('reconciler'), '冲突与版本检查');
+  assert.equal(stageLabel('reconciler'), '重复、补充与冲突检查');
   assert.equal(statusLabel('waiting_user_approval'), '等待你确认');
   assert.equal(actionLabel('review'), '等待你确认');
+  assert.equal(actionLabel('continue'), '等待你继续');
   assert.equal(gateLabel('canonical_proposal'), '正式知识提案需要确认');
 });
 

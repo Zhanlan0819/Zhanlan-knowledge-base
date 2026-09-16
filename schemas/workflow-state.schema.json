@@ -1,64 +1,222 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.invalid/kb/workflow-state.schema.json",
-  "title": "RUN_STATE.json v0.2-v0.4 compatible",
+  "title": "RUN_STATE.json v0.2-v0.5 compatible",
   "type": "object",
-  "required": ["schema_version", "run_id", "raw_id", "suggestion_run_id", "status", "current_stage", "stages", "checkpoints", "decisions", "created_at", "updated_at"],
+  "required": [
+    "schema_version",
+    "run_id",
+    "raw_id",
+    "suggestion_run_id",
+    "status",
+    "current_stage",
+    "stages",
+    "checkpoints",
+    "decisions",
+    "created_at",
+    "updated_at"
+  ],
   "additionalProperties": false,
   "$defs": {
-    "stageName": {"enum": ["intake", "router", "atomicizer", "claims", "family_builder", "theme_builder", "reconciler", "distiller", "proposal", "canonical", "skill_candidate", "skill_builder", "evaluator", "skill_publish"]},
+    "stageName": {
+      "enum": [
+        "intake",
+        "router",
+        "atomicizer",
+        "claims",
+        "family_builder",
+        "theme_builder",
+        "reconciler",
+        "distiller",
+        "proposal",
+        "canonical",
+        "skill_candidate",
+        "skill_builder",
+        "evaluator",
+        "skill_publish"
+      ]
+    },
     "stageRecord": {
       "type": "object",
-      "required": ["status", "version", "artifact_id", "sha256", "error"],
+      "required": [
+        "status",
+        "version",
+        "artifact_id",
+        "sha256",
+        "error"
+      ],
       "additionalProperties": false,
       "properties": {
-        "status": {"enum": ["not_started", "completed", "waiting_review", "failed", "needs_revision", "stale", "not_applicable"]},
-        "version": {"type": "integer", "minimum": 0},
-        "artifact_id": {"type": ["string", "null"]},
-        "sha256": {"type": ["string", "null"]},
-        "error": {"type": ["string", "null"]}
+        "status": {
+          "enum": [
+            "not_started",
+            "completed",
+            "waiting_review",
+            "failed",
+            "needs_revision",
+            "stale",
+            "not_applicable"
+          ]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     }
   },
   "properties": {
-    "schema_version": {"enum": ["0.2.0", "0.3.0", "0.4.0"]},
-    "run_id": {"type": "string"},
-    "raw_id": {"type": "string"},
-    "suggestion_run_id": {"type": "string"},
-    "status": {"enum": ["running", "waiting_user_approval", "completed", "completed_nonknowledge", "rejected", "failed", "needs_revision"]},
-    "current_stage": {"anyOf": [{"$ref": "#/$defs/stageName"}, {"type": "null"}]},
+    "schema_version": {
+      "enum": [
+        "0.2.0",
+        "0.3.0",
+        "0.4.0",
+        "0.5.0"
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "raw_id": {
+      "type": "string"
+    },
+    "suggestion_run_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "running",
+        "waiting_user_approval",
+        "completed",
+        "completed_nonknowledge",
+        "rejected",
+        "failed",
+        "needs_revision"
+      ]
+    },
+    "current_stage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/stageName"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "stages": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["intake", "router", "atomicizer", "claims", "family_builder", "theme_builder", "reconciler", "distiller", "proposal", "canonical", "skill_candidate", "skill_builder", "evaluator", "skill_publish"],
+      "required": [
+        "intake",
+        "router",
+        "atomicizer",
+        "claims",
+        "family_builder",
+        "theme_builder",
+        "reconciler",
+        "distiller",
+        "proposal",
+        "canonical",
+        "skill_candidate",
+        "skill_builder",
+        "evaluator",
+        "skill_publish"
+      ],
       "properties": {
-        "intake": {"$ref": "#/$defs/stageRecord"},
-        "router": {"$ref": "#/$defs/stageRecord"},
-        "atomicizer": {"$ref": "#/$defs/stageRecord"},
-        "claims": {"$ref": "#/$defs/stageRecord"},
-        "family_builder": {"$ref": "#/$defs/stageRecord"},
-        "theme_builder": {"$ref": "#/$defs/stageRecord"},
-        "reconciler": {"$ref": "#/$defs/stageRecord"},
-        "distiller": {"$ref": "#/$defs/stageRecord"},
-        "proposal": {"$ref": "#/$defs/stageRecord"},
-        "canonical": {"$ref": "#/$defs/stageRecord"},
-        "skill_candidate": {"$ref": "#/$defs/stageRecord"},
-        "skill_builder": {"$ref": "#/$defs/stageRecord"},
-        "evaluator": {"$ref": "#/$defs/stageRecord"},
-        "skill_publish": {"$ref": "#/$defs/stageRecord"}
+        "intake": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "router": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "atomicizer": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "claims": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "family_builder": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "theme_builder": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "reconciler": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "distiller": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "proposal": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "canonical": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "skill_candidate": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "skill_builder": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "evaluator": {
+          "$ref": "#/$defs/stageRecord"
+        },
+        "skill_publish": {
+          "$ref": "#/$defs/stageRecord"
+        }
       }
     },
     "checkpoints": {
       "type": "object",
       "additionalProperties": {
         "type": "object",
-        "required": ["status", "stage", "reason", "proposal_ids"],
+        "required": [
+          "status",
+          "stage",
+          "reason",
+          "proposal_ids"
+        ],
         "additionalProperties": false,
         "properties": {
-          "status": {"enum": ["waiting_user_approval", "approved", "rejected"]},
-          "stage": {"$ref": "#/$defs/stageName"},
-          "reason": {"type": "string"},
-          "proposal_ids": {"type": "array", "items": {"type": "string"}}
+          "status": {
+            "enum": [
+              "waiting_user_approval",
+              "approved",
+              "rejected"
+            ]
+          },
+          "stage": {
+            "$ref": "#/$defs/stageName"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "proposal_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -66,25 +224,127 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "checkpoint", "proposal_id", "source_artifact_id", "decision", "approved_by", "approved_at", "accepted_changes", "rejected_changes", "signature"],
+        "required": [
+          "id",
+          "checkpoint",
+          "proposal_id",
+          "source_artifact_id",
+          "decision",
+          "approved_by",
+          "approved_at",
+          "accepted_changes",
+          "rejected_changes",
+          "signature"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": {"type": "string"},
-          "checkpoint": {"type": "string"},
-          "proposal_id": {"type": ["string", "null"]},
-          "source_artifact_id": {"type": "string"},
-          "decision": {"enum": ["approved", "rejected", "partial"]},
-          "approved_by": {"type": "string"},
-          "approved_at": {"type": "string", "format": "date-time"},
-          "accepted_changes": {"type": "array", "items": {"type": "string"}},
-          "rejected_changes": {"type": "array", "items": {"type": "string"}},
-          "signature_alg": {"enum": ["ed25519-v1", "hmac-sha256-v1"]},
-          "key_id": {"type": "string", "minLength": 1},
-          "signature": {"type": "string"}
+          "id": {
+            "type": "string"
+          },
+          "checkpoint": {
+            "type": "string"
+          },
+          "proposal_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_artifact_id": {
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approved",
+              "rejected",
+              "partial"
+            ]
+          },
+          "approved_by": {
+            "type": "string"
+          },
+          "approved_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accepted_changes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rejected_changes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "signature_alg": {
+            "enum": [
+              "ed25519-v1",
+              "hmac-sha256-v1"
+            ]
+          },
+          "key_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "signature": {
+            "type": "string"
+          }
         }
       }
     },
-    "created_at": {"type": "string", "format": "date-time"},
-    "updated_at": {"type": "string", "format": "date-time"}
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "interaction": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "after_stage",
+            "next_stage",
+            "reason",
+            "created_at"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "const": "waiting_continue"
+            },
+            "after_stage": {
+              "$ref": "#/$defs/stageName"
+            },
+            "next_stage": {
+              "$ref": "#/$defs/stageName"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      ]
+    },
+    "interaction_mode": {
+      "enum": [
+        "legacy",
+        "guided"
+      ]
+    }
   }
 }

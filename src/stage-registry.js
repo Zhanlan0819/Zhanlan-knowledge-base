@@ -32,7 +32,7 @@ export function loadStageInstruction(stage, { projectRoot = DEFAULT_PROJECT_ROOT
   const preferred = safeResolve(projectRoot, def.instruction);
   const legacy = def.legacy_skill ? safeResolve(projectRoot, def.legacy_skill) : null;
   const file = fs.existsSync(preferred) ? preferred : legacy && fs.existsSync(legacy) ? legacy : null;
-  if (!file) throw new Error(`找不到 ${stage} 内部阶段指令；请运行“安装_v0.4_单总控.bat”或检查 ${def.instruction}`);
+  if (!file) throw new Error(`找不到 ${stage} 内部阶段指令；请运行 install_v04_single_orchestrator.bat 或检查 ${def.instruction}`);
   const text = fs.readFileSync(file, 'utf8');
   return {
     path: path.relative(path.resolve(projectRoot), file).replaceAll(path.sep, '/'),

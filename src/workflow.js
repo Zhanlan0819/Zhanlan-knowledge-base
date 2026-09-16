@@ -12,6 +12,8 @@ export const DEPENDS = Object.fromEntries(STAGES.map((s, i) => [s, i === 0 ? [] 
 export const GATES = { router: 'route_risk', theme_builder: 'major_theme_change',
   reconciler: 'conflict_or_version', proposal: 'canonical_proposal',
   skill_candidate: 'skill_promotion', evaluator: 'skill_publication' };
+export const INTERACTION_PAUSE_STAGES = new Set(['router', 'claims', 'family_builder', 'theme_builder', 'reconciler', 'distiller',
+  'skill_candidate', 'skill_builder']);
 const base = path.dirname(fileURLToPath(import.meta.url));
 const schemaDir = path.resolve(base, '../schemas');
 const readSchema = name => JSON.parse(fs.readFileSync(path.join(schemaDir, name), 'utf8'));
@@ -67,13 +69,14 @@ export class WorkflowService {
     return path.join(this.runDir(runId), 'evaluation-outputs', `${outputId}.json`);
   }
 
-  start({ bytes, annotations, producer = 'external_annotations' }) {
+  start({ bytes, annotations, producer = 'external_annotations', guided = false }) {
     const suggestion = ingest({ store: this.store, bytes, annotations });
     const runId = `wf_${crypto.randomUUID()}`;
-    const state = { schema_version: '0.4.0', run_id: runId, raw_id: suggestion.raw_id,
+    const state = { schema_version: '0.5.0', run_id: runId, raw_id: suggestion.raw_id,
       suggestion_run_id: suggestion.run_id, status: 'running', current_stage: 'router',
+      interaction_mode: guided ? 'guided' : 'legacy',
       stages: Object.fromEntries(STAGES.map(s => [s, stageRecord()])),
-      checkpoints: {}, decisions: [], created_at: now(), updated_at: now() };
+      checkpoints: {}, decisions: [], interaction: null, created_at: now(), updated_at: now() };
     fs.mkdirSync(this.runDir(runId), { recursive: true });
     this.commitArtifact(state, 'intake', { raw_id: suggestion.raw_id, sha256: sha(bytes), bytes: bytes.length }, producer);
     this.saveState(state);
@@ -153,6 +156,11 @@ export class WorkflowService {
     if (state.status === 'waiting_user_approval')
       assert(Object.values(state.checkpoints).some(c => c.status === 'waiting_user_approval'
         && state.stages[c.stage].status === 'waiting_review'), '等待审批状态缺对应 Checkpoint');
+    if (state.interaction?.status === 'waiting_continue') {
+      assert(state.status === 'running', '等待继续时 run 必须保持 running');
+      assert(state.stages[state.interaction.after_stage]?.status === 'completed', '等待继续缺已完成阶段');
+      assert(state.current_stage === state.interaction.next_stage, '等待继续的下一阶段与 current_stage 不一致');
+    }
     if (state.status === 'completed_nonknowledge')
       assert(state.stages.router.status === 'completed'
         && !this.artifact(state, 'router').data.assets.some(a => a.type === 'knowledge')
@@ -365,6 +373,7 @@ export class WorkflowService {
 
   submit(runId, stage, output, { producer = 'model', provenance = null } = {}) {
     const state = this.loadState(runId);
+    assert(!state.interaction, '当前流程正在等待用户继续；请先调用 continueRun，不能直接提交下一阶段');
     this.preconditions(state, stage);
     let data;
     try {
@@ -402,6 +411,11 @@ export class WorkflowService {
       this.invalidate(state, 'skill_builder', 'paired judge 推荐 revert');
       state.status = 'needs_revision'; state.current_stage = 'skill_builder';
     }
+    if ((state.interaction_mode ?? 'legacy') === 'guided' && state.status === 'running' && state.current_stage
+      && state.stages[stage].status === 'completed' && INTERACTION_PAUSE_STAGES.has(stage)) {
+      state.interaction = { status: 'waiting_continue', after_stage: stage, next_stage: state.current_stage,
+        reason: `已完成 ${stage}，等待用户确认后继续`, created_at: now() };
+    } else state.interaction = null;
     this.saveState(state);
     this.audit(runId, { stage, input_ids: envelope.inputs.map(x => x.artifact_id),
       output_ids: outputIds(data), model_agent: producer, result: state.stages[stage].status });
@@ -428,6 +442,7 @@ export class WorkflowService {
     assert(actor === 'user_review_service', 'AI 无权记录审批决定');
     this.assertReviewSigner();
     const state = this.loadState(runId);
+    state.interaction = null;
     const cp = state.checkpoints[checkpoint];
     assert(cp?.status === 'waiting_user_approval', 'Checkpoint 不在等待用户审阅');
     assert(['approved', 'rejected', 'partial'].includes(decision), '非法审批决定');
@@ -483,6 +498,7 @@ export class WorkflowService {
     assert(actor === 'user_review_service', 'AI 无权写 Canonical Knowledge');
     this.assertReviewSigner();
     const state = this.loadState(runId);
+    state.interaction = null;
     assert(state.stages.proposal.status === 'completed' && state.checkpoints.canonical_proposal?.status === 'approved',
       '未经批准的 Proposal 不能写正式知识');
     assert(state.stages.canonical.status === 'not_started', 'Canonical 已写入；不能覆盖');
@@ -529,6 +545,7 @@ export class WorkflowService {
     assert(actor === 'user_review_service', 'AI 无权主动退回已批准阶段');
     this.assertReviewSigner();
     const state = this.loadState(runId);
+    state.interaction = null;
     assert(state.stages[stage]?.artifact_id, `${stage} 没有可退回产物`);
     assert(!['canonical', 'skill_publish'].includes(stage), '正式知识/Skill 不做破坏性回滚；请提交修订 Proposal');
     this.invalidate(state, stage, reason);
@@ -560,6 +577,9 @@ export class WorkflowService {
     const waiting = Object.entries(state.checkpoints).find(([, c]) => c.status === 'waiting_user_approval');
     if (waiting) return { run_id: runId, status: 'waiting_user_approval', required_action: 'review',
       next_stage: null, checkpoint: waiting[0], reason: waiting[1].reason, state };
+    if (state.interaction?.status === 'waiting_continue') return { run_id: runId, status: state.status,
+      required_action: 'continue', next_stage: state.interaction.next_stage, after_stage: state.interaction.after_stage,
+      checkpoint: null, reason: state.interaction.reason, state };
     if (['completed', 'completed_nonknowledge', 'rejected'].includes(state.status))
       return { run_id: runId, status: state.status, required_action: 'done',
         next_stage: null, checkpoint: null, state };
@@ -573,6 +593,19 @@ export class WorkflowService {
     else if (!stage) requiredAction = 'done';
     return { run_id: runId, status: state.status, required_action: requiredAction, next_stage: stage,
       checkpoint: null, state };
+  }
+
+  continueRun(runId, { actor = 'user_interaction' } = {}) {
+    assert(actor === 'user_interaction', '只有明确的用户继续动作才能解除阶段暂停');
+    const state = this.loadState(runId);
+    assert((state.interaction_mode ?? 'legacy') === 'guided' && state.interaction?.status === 'waiting_continue', '当前流程没有在等待继续');
+    const afterStage = state.interaction.after_stage;
+    const nextStage = state.interaction.next_stage;
+    state.interaction = null;
+    this.saveState(state);
+    this.audit(runId, { stage: afterStage, input_ids: [state.stages[afterStage].artifact_id], output_ids: [],
+      model_agent: actor, result: 'user_continue', user_decision: { next_stage: nextStage } });
+    return this.resume(runId);
   }
   traceCanonical(runId, canonicalId) {
     const state = this.loadState(runId);
@@ -589,6 +622,7 @@ export class WorkflowService {
     assert(actor === 'user_review_service', 'AI 无权发布正式 Skill');
     this.assertReviewSigner();
     const state = this.loadState(runId);
+    state.interaction = null;
     assert(state.stages.evaluator.status === 'completed' && state.checkpoints.skill_publication?.status === 'approved',
       '发布前缺真实评测结果或 Gate F 审批');
     assert(state.stages.skill_publish.status === 'not_started', '正式 Skill 已发布；不能覆盖');

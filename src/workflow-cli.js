@@ -3,6 +3,7 @@ import { WorkflowService } from './workflow.js';
 import { AgentRuntime, ExternalCommandModelAdapter } from './agent-runtime.js';
 import { specialistVisibilityReport } from './stage-registry.js';
 import { presentResume, stageLabel, statusLabel, assetTypeLabel } from './display-labels.js';
+import { buildCurrentView } from './user-presentation.js';
 
 function flag(name) { const i = process.argv.indexOf(name); return i < 0 ? null : process.argv[i + 1]; }
 const print = value => process.stdout.write(JSON.stringify(value, null, 2) + '\n');
@@ -29,7 +30,7 @@ function hasReviewSigner() {
 
 function modelAdapterFromEnv() {
   const command = process.env.KB_MODEL_COMMAND;
-  if (!command) throw new Error('run-stage/run-until-stop 需要 KB_MODEL_COMMAND');
+  if (!command) throw new Error('run-stage/run-until-stop/continue-run 需要 KB_MODEL_COMMAND');
   let args = [];
   if (process.env.KB_MODEL_ARGS_JSON) {
     args = JSON.parse(process.env.KB_MODEL_ARGS_JSON);
@@ -50,9 +51,13 @@ try {
     const input = flag('--input'), annotations = flag('--annotations');
     if (!input || !annotations) throw new Error(`${action} 需要 --input TXT --annotations JSON`);
     const started = service.start({ bytes: fs.readFileSync(input),
-      annotations: JSON.parse(fs.readFileSync(annotations, 'utf8')) });
+      annotations: JSON.parse(fs.readFileSync(annotations, 'utf8')), guided: action === 'start' });
     const runId = started.run_id;
-    if (action === 'start') print({ run_id: runId, state_path: service.statePath(runId), next_stage: 'router',
+    if (action === 'start') print({
+      '已创建整理任务': true,
+      '当前进度': '准备完成，下一步进入第 1/7 阶段：内容分流',
+      '下一步': '执行内容分流',
+      run_id: runId, state_path: service.statePath(runId), next_stage: 'router',
       required_action: 'execute', suggestion_run_id: started.state.suggestion_run_id });
     else {
       const s = started.suggestion;
@@ -81,11 +86,13 @@ try {
     if (!runId) throw new Error(`${action} 需要 --run RUN_ID`);
     if (action === 'view') {
       const r = service.resume(runId);
+      const view = buildCurrentView(service, r);
       print({
         ...presentResume(r),
-        '各步骤': Object.fromEntries(Object.entries(r.state.stages).map(([k, v]) => [stageLabel(k), statusLabel(v.status)])),
+        '整理进度': view.progress,
+        ...(view.last_result ? { '最近整理结果': view.last_result } : {}),
         ...(r.state.stages.router?.artifact_id ? {
-          '内容类型': [...new Set(service.artifact(r.state, 'router').data.assets.map(a => assetTypeLabel(a.type)))]
+          '已识别内容类型': [...new Set(service.artifact(r.state, 'router').data.assets.map(a => assetTypeLabel(a.type)))]
         } : {})
       });
     } else if (action === 'status' || action === 'resume') {
@@ -97,10 +104,15 @@ try {
       const runtime = new AgentRuntime({ service });
       const prepared = runtime.prepareStage(runId);
       print(prepared.runnable ? prepared.request : { runnable: false, ...prepared.resumed });
-    } else if (action === 'run-stage' || action === 'run-until-stop') {
+    } else if (action === 'run-stage' || action === 'run-until-stop' || action === 'continue-run') {
       const runtime = new AgentRuntime({ service, modelAdapter: modelAdapterFromEnv(),
         maxAutoSteps: Number(flag('--max-steps') ?? 20) });
-      print(action === 'run-stage' ? runtime.runOne(runId) : runtime.runUntilStop(runId));
+      if (action === 'run-stage') print(runtime.runOne(runId));
+      else if (action === 'continue-run') print(runtime.continueAndRun(runId));
+      else print(runtime.runUntilStop(runId));
+    } else if (action === 'continue') {
+      const r = service.continueRun(runId, { actor: 'user_interaction' });
+      print({ '已确认继续': true, ...presentResume(r), '整理进度': buildCurrentView(service, r).progress });
     } else if (action === 'submit' || action === 'retry') {
       const stage = flag('--stage'), file = flag('--output');
       if (!stage || !file) throw new Error(`${action} 需要 --stage STAGE --output JSON`);
@@ -145,6 +157,6 @@ try {
       const id = flag('--canonical');
       if (!id) throw new Error('trace 需要 --canonical ID');
       print(service.traceCanonical(runId, id));
-    } else throw new Error('可用命令: skill-visibility, start, demo, view, status, resume, prepare-stage, run-stage, run-until-stop, submit, retry, fail, record-output, decision, apply, publish, rollback, trace');
+    } else throw new Error('可用命令: skill-visibility, start, demo, view, status, resume, prepare-stage, run-stage, run-until-stop, continue, continue-run, submit, retry, fail, record-output, decision, apply, publish, rollback, trace');
   }
 } catch (error) { process.stderr.write(`错误: ${error.message}\n`); process.exitCode = 1; }

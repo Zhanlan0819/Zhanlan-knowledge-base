@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { buildStageContext, loadStageInstruction, DEFAULT_PROJECT_ROOT } from './stage-registry.js';
 import { presentResume, presentStageHistory, stageLabel } from './display-labels.js';
+import { buildCurrentView, buildStageReport } from './user-presentation.js';
 
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -68,13 +69,14 @@ export class AgentRuntime {
     const schema = readWorkflowSchema(this.projectRoot);
     const stageSchema = schema.$defs?.[stage] ?? null;
     const request = {
-      protocol: 'knowledge-stage-request/v0.4.2',
+      protocol: 'knowledge-stage-request/v0.5.0',
       run_id: runId,
       stage,
       stage_label_zh: stageLabel(stage),
       action: resumed.required_action,
       rules: [
         '你是“知识整理总控”当前阶段的内部执行单元，不是独立对外 Skill。',
+        '扫描、备份、索引、生成技术报告只是准备动作，不能当作知识整理完成；必须执行当前 workflow stage 并产生结构化阶段产物。',
         '只执行当前 stage；不得自行进入下一阶段。',
         'stage_instruction 是当前阶段的语义规则来源；不要加载或选择其它阶段。',
         '只返回一个 JSON 对象，不要 Markdown 代码围栏、解释或审批结论。',
@@ -104,7 +106,12 @@ export class AgentRuntime {
 
   runOne(runId) {
     const prepared = this.prepareStage(runId);
-    if (!prepared.runnable) return { status: 'stopped', ...prepared.resumed };
+    if (!prepared.runnable) {
+      const view = buildCurrentView(this.service, prepared.resumed);
+      return { status: 'stopped', run_id: runId, required_action: prepared.resumed.required_action,
+        user_report: view.last_result, display: { ...presentResume(prepared.resumed), '当前进度': view.progress,
+          ...(view.last_result ? { '最近整理结果': view.last_result } : {}) }, resumed: prepared.resumed };
+    }
     if (!this.modelAdapter || typeof this.modelAdapter.generate !== 'function')
       throw new Error('没有 modelAdapter；可先使用 prepareStage()，或给 AgentRuntime 注入模型适配器');
     const { request, resumed, instruction } = prepared;
@@ -125,7 +132,7 @@ export class AgentRuntime {
       instruction_path: instruction.path,
       instruction_sha256: instruction.sha256,
       model: this.modelAdapter.id ?? 'unknown-model-adapter',
-      runner: 'AgentRuntime/v0.4.2',
+      runner: 'AgentRuntime/v0.5.0',
       attempt_id: attemptId,
       context_sha256: sha(JSON.stringify(request.context))
     };
@@ -134,8 +141,10 @@ export class AgentRuntime {
         ? this.service.retry(runId, resumed.next_stage, output, { producer: provenance.model, provenance })
         : this.service.submit(runId, resumed.next_stage, output, { producer: provenance.model, provenance });
       const after = this.service.resume(runId);
+      const userReport = buildStageReport(this.service, after.state, resumed.next_stage);
       return { status: 'stage_completed', run_id: runId, stage: resumed.next_stage, stage_label_zh: stageLabel(resumed.next_stage),
-        artifact_id: result.artifact?.artifact_id ?? null, display: presentResume(after), resumed: after };
+        artifact_id: result.artifact?.artifact_id ?? null, user_report: userReport,
+        display: { ...presentResume(after), '本阶段结果': userReport }, resumed: after };
     } catch (error) {
       const after = this.service.resume(runId);
       return { status: 'failed', run_id: runId, stage: resumed.next_stage, stage_label_zh: stageLabel(resumed.next_stage), error: error.message,
@@ -145,18 +154,39 @@ export class AgentRuntime {
 
   runUntilStop(runId, { maxSteps = this.maxAutoSteps } = {}) {
     const history = [];
+    let lastReport = null;
     for (let i = 0; i < maxSteps; i += 1) {
       const status = this.service.resume(runId);
       if (!['execute', 'retry'].includes(status.required_action))
         return { run_id: runId, status: status.status, required_action: status.required_action,
           checkpoint: status.checkpoint ?? null, next_stage: status.next_stage ?? null,
-          display: { ...presentResume(status), '已执行步骤': presentStageHistory(history) }, history, state: status.state };
+          user_report: lastReport ?? buildCurrentView(this.service, status).last_result,
+          display: { ...presentResume(status), '当前进度': buildCurrentView(this.service, status).progress,
+            ...(lastReport ? { '本阶段结果': lastReport } : {}), '本轮已执行': presentStageHistory(history) }, history, state: status.state };
       const one = this.runOne(runId);
-      history.push({ stage: one.stage, stage_label_zh: stageLabel(one.stage), status: one.status, artifact_id: one.artifact_id ?? null, error: one.error ?? null });
+      lastReport = one.user_report ?? lastReport;
+      history.push({ stage: one.stage, stage_label_zh: stageLabel(one.stage), status: one.status,
+        artifact_id: one.artifact_id ?? null, error: one.error ?? null });
       if (one.status === 'failed') return { run_id: runId, status: 'failed', required_action: 'retry', history,
-        display: { ...presentResume(one.resumed), '已执行步骤': presentStageHistory(history) },
+        user_report: lastReport,
+        display: { ...presentResume(one.resumed), '当前进度': buildCurrentView(this.service, one.resumed).progress,
+          ...(lastReport ? { '本阶段结果': lastReport } : {}), '本轮已执行': presentStageHistory(history) },
         state: one.resumed.state, next_stage: one.resumed.next_stage };
     }
     throw new Error(`AgentRuntime 超过最大自动步数 ${maxSteps}；停止以避免失控循环`);
+  }
+
+  continueAndRun(runId, { maxSteps = this.maxAutoSteps } = {}) {
+    const before = this.service.resume(runId);
+    if (before.required_action !== 'continue')
+      return { run_id: runId, status: before.status, required_action: before.required_action,
+        display: { ...presentResume(before), '当前进度': buildCurrentView(this.service, before).progress }, state: before.state };
+    this.service.continueRun(runId, { actor: 'user_interaction' });
+    return this.runUntilStop(runId, { maxSteps });
+  }
+
+  view(runId) {
+    const resumed = this.service.resume(runId);
+    return { ...buildCurrentView(this.service, resumed), display: presentResume(resumed), state: resumed.state };
   }
 }

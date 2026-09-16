@@ -1,6 +1,6 @@
 {
-  "schema_version": "0.4.2",
-  "description": "知识整理总控的内部阶段注册表。只有 knowledge-orchestrator/SKILL.md 对外可发现；label_zh 仅用于中文展示。",
+  "schema_version": "0.5.0",
+  "description": "知识整理总控 v0.5 内部阶段注册表。只有总控 SKILL.md 对外可发现；内部步骤在 guided 模式下按用户阶段暂停。",
   "stages": {
     "router": {
       "instruction": "skills/knowledge-router/STAGE.md",
@@ -55,7 +55,7 @@
         "family_builder",
         "claims"
       ],
-      "label_zh": "冲突与版本检查"
+      "label_zh": "重复、补充与冲突检查"
     },
     "distiller": {
       "instruction": "skills/knowledge-distiller/STAGE.md",
