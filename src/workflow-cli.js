@@ -3,7 +3,7 @@ import { WorkflowService } from './workflow.js';
 import { AgentRuntime, ExternalCommandModelAdapter } from './agent-runtime.js';
 import { specialistVisibilityReport } from './stage-registry.js';
 import { presentResume, stageLabel, statusLabel, assetTypeLabel } from './display-labels.js';
-import { buildCurrentView } from './user-presentation.js';
+import { buildCurrentView, presentStageReport } from './user-presentation.js';
 
 function flag(name) { const i = process.argv.indexOf(name); return i < 0 ? null : process.argv[i + 1]; }
 const print = value => process.stdout.write(JSON.stringify(value, null, 2) + '\n');
@@ -50,13 +50,15 @@ try {
   if (action === 'start' || action === 'demo') {
     const input = flag('--input'), annotations = flag('--annotations');
     if (!input || !annotations) throw new Error(`${action} 需要 --input TXT --annotations JSON`);
+    const briefFile = flag('--brief-file');
+    const userBrief = briefFile ? fs.readFileSync(briefFile, 'utf8') : flag('--brief');
     const started = service.start({ bytes: fs.readFileSync(input),
-      annotations: JSON.parse(fs.readFileSync(annotations, 'utf8')), guided: action === 'start' });
+      annotations: JSON.parse(fs.readFileSync(annotations, 'utf8')), guided: action === 'start', userBrief });
     const runId = started.run_id;
     if (action === 'start') print({
       '已创建整理任务': true,
-      '当前进度': '准备完成，下一步进入第 1/7 阶段：内容分流',
-      '下一步': '执行内容分流',
+      '当前进度': '准备完成；系统将自动处理内部阶段，直到遇到第一个真正需要你判断的节点',
+      '下一步': '自动执行到主题结构检查点或更早的风险 Gate',
       run_id: runId, state_path: service.statePath(runId), next_stage: 'router',
       required_action: 'execute', suggestion_run_id: started.state.suggestion_run_id });
     else {
@@ -90,7 +92,7 @@ try {
       print({
         ...presentResume(r),
         '整理进度': view.progress,
-        ...(view.last_result ? { '最近整理结果': view.last_result } : {}),
+        ...(view.last_result ? { '最近整理结果': presentStageReport(view.last_result) } : {}),
         ...(r.state.stages.router?.artifact_id ? {
           '已识别内容类型': [...new Set(service.artifact(r.state, 'router').data.assets.map(a => assetTypeLabel(a.type)))]
         } : {})

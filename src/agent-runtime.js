@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { buildStageContext, loadStageInstruction, DEFAULT_PROJECT_ROOT } from './stage-registry.js';
 import { presentResume, presentStageHistory, stageLabel } from './display-labels.js';
-import { buildCurrentView, buildStageReport } from './user-presentation.js';
+import { buildCurrentView, buildStageReport, presentStageReport } from './user-presentation.js';
 
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -69,7 +69,7 @@ export class AgentRuntime {
     const schema = readWorkflowSchema(this.projectRoot);
     const stageSchema = schema.$defs?.[stage] ?? null;
     const request = {
-      protocol: 'knowledge-stage-request/v0.5.0',
+      protocol: 'knowledge-stage-request/v0.6.0',
       run_id: runId,
       stage,
       stage_label_zh: stageLabel(stage),
@@ -78,18 +78,34 @@ export class AgentRuntime {
         '你是“知识整理总控”当前阶段的内部执行单元，不是独立对外 Skill。',
         '扫描、备份、索引、生成技术报告只是准备动作，不能当作知识整理完成；必须执行当前 workflow stage 并产生结构化阶段产物。',
         '只执行当前 stage；不得自行进入下一阶段。',
-        'stage_instruction 是当前阶段的语义规则来源；不要加载或选择其它阶段。',
+        'stage_instruction 是当前阶段的语义规则来源；不要加载或选择其它阶段。若旧 STAGE.md 与本 Runtime v0.6 硬规则冲突，以本 rules 为准。',
+        'user_brief 若存在，是本轮整理目标与用户约束的持续锚点；每阶段都要检查输出是否仍服务这些目标，不得在阶段传递中丢失。',
         '只返回一个 JSON 对象，不要 Markdown 代码围栏、解释或审批结论。',
         '不得伪造用户批准、Review Service 身份、Canonical 或正式 Skill 发布。',
         '不确定内容必须按当前阶段规则/Schema 的待确认或风险机制表达，不得编造。',
         'Schema 要求的英文枚举和内部 ID 必须保持原样；但 title/name/question/text/summary/description 等面向人的语义字段，在中文语料中必须使用自然中文。',
         '不得把 content-path-*、method-*、business-*、knowledge-*、organized-*、raw_*、wf_*、claim_* 等内部 ID 填进面向人的标题或说明字段。',
-        '不得在语义文本中输出 external=外部资料、case=项目案例 这类中英对照机器说明。'
+        '不得在语义文本中输出 external=外部资料、case=项目案例 这类中英对照机器说明。',
+        ...(stage === 'router' ? [
+          '外部资料、项目案例、项目方案首先表示来源/载体身份，不应自动成为知识加工终点。若其中包含可复用判断、方法、原则或案例结构，应保留原来源资产，同时对可复用的原文片段额外建立 knowledge 资产；允许不同类型资产锚点重叠。',
+          '不要把整份外部资料直接改标为知识；只对真正可复用的具体片段建立知识资产，并保留来源边界。'
+        ] : []),
+        ...(stage === 'atomicizer' ? [
+          '一份知识资产可以拆成多个原子。每个原子只承载一个能够独立判断真伪、适用条件或后续归组的最小主张；不要再强制“一资产=一原子”。',
+          '原子 anchor 必须是所属知识资产原文范围内的真实子片段；不得为了凑原子而改写证据原文。'
+        ] : []),
+        ...(stage === 'family_builder' ? [
+          '归组阶段重点是找真正表达同一核心判断的主张；同主题下的例子、步骤、条件、细化与应用不要为了压缩数量而误合并。'
+        ] : []),
+        ...(stage === 'reconciler' ? [
+          '优先识别真正需要人工决策的冲突、撤回和版本变化；重复、细化、补充、来源、应用可以自动记录，不要把所有关系都升级为人工问题。'
+        ] : [])
       ],
       stage_instruction: {
         path: instruction.path,
         intended_path: instruction.intended_path,
         label_zh: instruction.label_zh,
+        review_policy: instruction.review_policy,
         sha256: instruction.sha256,
         legacy_fallback: instruction.legacy_fallback,
         content: instruction.text
@@ -110,7 +126,7 @@ export class AgentRuntime {
       const view = buildCurrentView(this.service, prepared.resumed);
       return { status: 'stopped', run_id: runId, required_action: prepared.resumed.required_action,
         user_report: view.last_result, display: { ...presentResume(prepared.resumed), '当前进度': view.progress,
-          ...(view.last_result ? { '最近整理结果': view.last_result } : {}) }, resumed: prepared.resumed };
+          ...(view.last_result ? { '最近整理结果': presentStageReport(view.last_result) } : {}) }, resumed: prepared.resumed };
     }
     if (!this.modelAdapter || typeof this.modelAdapter.generate !== 'function')
       throw new Error('没有 modelAdapter；可先使用 prepareStage()，或给 AgentRuntime 注入模型适配器');
@@ -132,7 +148,7 @@ export class AgentRuntime {
       instruction_path: instruction.path,
       instruction_sha256: instruction.sha256,
       model: this.modelAdapter.id ?? 'unknown-model-adapter',
-      runner: 'AgentRuntime/v0.5.0',
+      runner: 'AgentRuntime/v0.6.0',
       attempt_id: attemptId,
       context_sha256: sha(JSON.stringify(request.context))
     };
@@ -144,7 +160,7 @@ export class AgentRuntime {
       const userReport = buildStageReport(this.service, after.state, resumed.next_stage);
       return { status: 'stage_completed', run_id: runId, stage: resumed.next_stage, stage_label_zh: stageLabel(resumed.next_stage),
         artifact_id: result.artifact?.artifact_id ?? null, user_report: userReport,
-        display: { ...presentResume(after), '本阶段结果': userReport }, resumed: after };
+        display: { ...presentResume(after), '本阶段结果': presentStageReport(userReport) }, resumed: after };
     } catch (error) {
       const after = this.service.resume(runId);
       return { status: 'failed', run_id: runId, stage: resumed.next_stage, stage_label_zh: stageLabel(resumed.next_stage), error: error.message,
@@ -162,7 +178,7 @@ export class AgentRuntime {
           checkpoint: status.checkpoint ?? null, next_stage: status.next_stage ?? null,
           user_report: lastReport ?? buildCurrentView(this.service, status).last_result,
           display: { ...presentResume(status), '当前进度': buildCurrentView(this.service, status).progress,
-            ...(lastReport ? { '本阶段结果': lastReport } : {}), '本轮已执行': presentStageHistory(history) }, history, state: status.state };
+            ...(lastReport ? { '本阶段结果': presentStageReport(lastReport) } : {}), '本轮已执行': presentStageHistory(history) }, history, state: status.state };
       const one = this.runOne(runId);
       lastReport = one.user_report ?? lastReport;
       history.push({ stage: one.stage, stage_label_zh: stageLabel(one.stage), status: one.status,
@@ -170,7 +186,7 @@ export class AgentRuntime {
       if (one.status === 'failed') return { run_id: runId, status: 'failed', required_action: 'retry', history,
         user_report: lastReport,
         display: { ...presentResume(one.resumed), '当前进度': buildCurrentView(this.service, one.resumed).progress,
-          ...(lastReport ? { '本阶段结果': lastReport } : {}), '本轮已执行': presentStageHistory(history) },
+          ...(lastReport ? { '本阶段结果': presentStageReport(lastReport) } : {}), '本轮已执行': presentStageHistory(history) },
         state: one.resumed.state, next_stage: one.resumed.next_stage };
     }
     throw new Error(`AgentRuntime 超过最大自动步数 ${maxSteps}；停止以避免失控循环`);

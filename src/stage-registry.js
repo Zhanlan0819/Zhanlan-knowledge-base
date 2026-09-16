@@ -38,6 +38,7 @@ export function loadStageInstruction(stage, { projectRoot = DEFAULT_PROJECT_ROOT
     path: path.relative(path.resolve(projectRoot), file).replaceAll(path.sep, '/'),
     intended_path: def.instruction,
     label_zh: def.label_zh ?? '内部处理步骤',
+    review_policy: def.review_policy ?? 'auto',
     legacy_fallback: file === legacy,
     text,
     sha256: sha(text)
@@ -71,6 +72,7 @@ export function buildStageContext(service, state, stage, { projectRoot = DEFAULT
     run_id: state.run_id,
     raw_id: state.raw_id,
     stage,
+    user_brief: state.user_brief ?? null,
     state_summary: Object.fromEntries(Object.entries(state.stages).map(([name, record]) => [name, {
       status: record.status, version: record.version, artifact_id: record.artifact_id
     }])),

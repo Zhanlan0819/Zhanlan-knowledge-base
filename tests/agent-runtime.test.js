@@ -34,7 +34,7 @@ test('AgentRuntime prepares exactly one internal STAGE instruction', () => {
   const runtime = new AgentRuntime({ service, projectRoot: root });
   const prepared = runtime.prepareStage('wf_test');
   assert.equal(prepared.runnable, true);
-  assert.equal(prepared.request.protocol, 'knowledge-stage-request/v0.5.0');
+  assert.equal(prepared.request.protocol, 'knowledge-stage-request/v0.6.0');
   assert.equal(prepared.request.stage_instruction.path, 'skills/knowledge-router/STAGE.md');
   assert.equal(prepared.request.stage_instruction.legacy_fallback, false);
   assert.equal(prepared.request.context.raw_text, 'hello');

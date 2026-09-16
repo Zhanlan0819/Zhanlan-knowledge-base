@@ -1,13 +1,14 @@
 {
-  "schema_version": "0.5.0",
-  "description": "知识整理总控 v0.5 内部阶段注册表。只有总控 SKILL.md 对外可发现；内部步骤在 guided 模式下按用户阶段暂停。",
+  "schema_version": "0.6.0",
+  "description": "知识整理总控 v0.6 内部阶段注册表。采用 decision-first review：内部阶段自动连续执行，只在主题结构、真实风险/冲突和正式提案等高价值决策点暂停。",
   "stages": {
     "router": {
       "instruction": "skills/knowledge-router/STAGE.md",
       "legacy_skill": "skills/knowledge-router/SKILL.md",
       "include_raw": true,
       "artifacts": [],
-      "label_zh": "内容分流"
+      "label_zh": "内容分流",
+      "review_policy": "gate_only"
     },
     "atomicizer": {
       "instruction": "skills/knowledge-atomicizer/STAGE.md",
@@ -16,7 +17,8 @@
       "artifacts": [
         "router"
       ],
-      "label_zh": "知识拆解"
+      "label_zh": "知识拆解",
+      "review_policy": "auto"
     },
     "claims": {
       "instruction": "skills/knowledge-atomicizer/STAGE.md",
@@ -25,7 +27,8 @@
       "artifacts": [
         "atomicizer"
       ],
-      "label_zh": "主张提取"
+      "label_zh": "主张提取",
+      "review_policy": "auto"
     },
     "family_builder": {
       "instruction": "skills/knowledge-family-builder/STAGE.md",
@@ -34,7 +37,8 @@
       "artifacts": [
         "claims"
       ],
-      "label_zh": "同类知识归组"
+      "label_zh": "同类知识归组",
+      "review_policy": "auto"
     },
     "theme_builder": {
       "instruction": "skills/knowledge-theme-builder/STAGE.md",
@@ -44,7 +48,8 @@
         "family_builder",
         "claims"
       ],
-      "label_zh": "主题整理"
+      "label_zh": "主题整理",
+      "review_policy": "milestone_or_gate"
     },
     "reconciler": {
       "instruction": "skills/knowledge-reconciler/STAGE.md",
@@ -55,7 +60,8 @@
         "family_builder",
         "claims"
       ],
-      "label_zh": "重复、补充与冲突检查"
+      "label_zh": "重复、补充与冲突检查",
+      "review_policy": "gate_only"
     },
     "distiller": {
       "instruction": "skills/knowledge-distiller/STAGE.md",
@@ -67,7 +73,8 @@
         "claims",
         "reconciler"
       ],
-      "label_zh": "知识蒸馏"
+      "label_zh": "知识蒸馏",
+      "review_policy": "auto"
     },
     "proposal": {
       "instruction": "skills/knowledge-distiller/STAGE.md",
@@ -79,7 +86,8 @@
         "family_builder",
         "claims"
       ],
-      "label_zh": "生成待确认提案"
+      "label_zh": "生成待确认提案",
+      "review_policy": "hard_gate"
     },
     "skill_candidate": {
       "instruction": "skills/knowledge-skill-builder/STAGE.md",
@@ -89,7 +97,8 @@
         "canonical",
         "claims"
       ],
-      "label_zh": "能力候选筛选"
+      "label_zh": "能力候选筛选",
+      "review_policy": "hard_gate"
     },
     "skill_builder": {
       "instruction": "skills/knowledge-skill-builder/STAGE.md",
@@ -99,7 +108,8 @@
         "skill_candidate",
         "canonical"
       ],
-      "label_zh": "能力规则构建"
+      "label_zh": "能力规则构建",
+      "review_policy": "auto"
     },
     "evaluator": {
       "instruction": "skills/knowledge-evaluator/STAGE.md",
@@ -109,7 +119,8 @@
         "skill_builder",
         "skill_candidate"
       ],
-      "label_zh": "实际任务评测"
+      "label_zh": "实际任务评测",
+      "review_policy": "hard_gate"
     }
   }
 }

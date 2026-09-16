@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.invalid/kb/workflow-state.schema.json",
-  "title": "RUN_STATE.json v0.2-v0.5 compatible",
+  "title": "RUN_STATE.json v0.2-v0.6 compatible",
   "type": "object",
   "required": [
     "schema_version",
@@ -89,7 +89,8 @@
         "0.2.0",
         "0.3.0",
         "0.4.0",
-        "0.5.0"
+        "0.5.0",
+        "0.6.0"
       ]
     },
     "run_id": {
@@ -345,6 +346,13 @@
         "legacy",
         "guided"
       ]
+    },
+    "user_brief": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 12000
     }
   }
 }

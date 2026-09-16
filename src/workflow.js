@@ -12,8 +12,10 @@ export const DEPENDS = Object.fromEntries(STAGES.map((s, i) => [s, i === 0 ? [] 
 export const GATES = { router: 'route_risk', theme_builder: 'major_theme_change',
   reconciler: 'conflict_or_version', proposal: 'canonical_proposal',
   skill_candidate: 'skill_promotion', evaluator: 'skill_publication' };
-export const INTERACTION_PAUSE_STAGES = new Set(['router', 'claims', 'family_builder', 'theme_builder', 'reconciler', 'distiller',
-  'skill_candidate', 'skill_builder']);
+// v0.6: soft pauses are decision-first, not stage-first.
+// Only pause after the high-level theme structure is formed; all true risks/conflicts/proposals
+// are already protected by GATES. This avoids asking the user to say “继续” after every internal transform.
+export const INTERACTION_PAUSE_STAGES = new Set(['theme_builder']);
 const base = path.dirname(fileURLToPath(import.meta.url));
 const schemaDir = path.resolve(base, '../schemas');
 const readSchema = name => JSON.parse(fs.readFileSync(path.join(schemaDir, name), 'utf8'));
@@ -69,12 +71,13 @@ export class WorkflowService {
     return path.join(this.runDir(runId), 'evaluation-outputs', `${outputId}.json`);
   }
 
-  start({ bytes, annotations, producer = 'external_annotations', guided = false }) {
+  start({ bytes, annotations, producer = 'external_annotations', guided = false, userBrief = null }) {
     const suggestion = ingest({ store: this.store, bytes, annotations });
     const runId = `wf_${crypto.randomUUID()}`;
-    const state = { schema_version: '0.5.0', run_id: runId, raw_id: suggestion.raw_id,
+    const state = { schema_version: '0.6.0', run_id: runId, raw_id: suggestion.raw_id,
       suggestion_run_id: suggestion.run_id, status: 'running', current_stage: 'router',
       interaction_mode: guided ? 'guided' : 'legacy',
+      user_brief: typeof userBrief === 'string' && userBrief.trim() ? userBrief.trim() : null,
       stages: Object.fromEntries(STAGES.map(s => [s, stageRecord()])),
       checkpoints: {}, decisions: [], interaction: null, created_at: now(), updated_at: now() };
     fs.mkdirSync(this.runDir(runId), { recursive: true });
@@ -268,12 +271,21 @@ export class WorkflowService {
     if (stage === 'atomicizer') {
       const knowledge = router.assets.filter(a => a.type === 'knowledge');
       assert((data.unresolved_asset_ids ?? []).length === 0, 'atomicizer: 存在未处理知识资产');
-      assert(data.atoms.length === knowledge.length, 'atomicizer: 知识类 RAW 拆件未全映射');
-      assert(unique(data.atoms.map(a => a.asset_id)), 'atomicizer: 资产被重复映射');
+      // v0.6: one source asset may contain multiple independent claims. Every knowledge asset must
+      // contribute at least one atom, but forcing 1 asset = 1 atom prevents real atomization.
+      assert(data.atoms.length >= knowledge.length || knowledge.length === 0,
+        'atomicizer: 至少要为每个知识资产提取一个原子');
+      const mappedAssetIds = new Set(data.atoms.map(a => a.asset_id));
+      assert(knowledge.every(a => mappedAssetIds.has(a.id)), 'atomicizer: 存在未映射的知识资产');
       for (const atom of data.atoms) {
         const asset = knowledge.find(a => a.id === atom.asset_id);
-        assert(asset && atom.raw_id === state.raw_id && JSON.stringify(atom.anchor) === JSON.stringify(asset.anchor),
-          'atomicizer: atom 缺失资产/RAW 锚点');
+        assert(asset && atom.raw_id === state.raw_id, 'atomicizer: atom 缺失资产/RAW 关联');
+        assert(atom.anchor && Number.isInteger(atom.anchor.start) && Number.isInteger(atom.anchor.end)
+          && atom.anchor.start >= asset.anchor.start && atom.anchor.end <= asset.anchor.end
+          && atom.anchor.end > atom.anchor.start,
+          'atomicizer: 原子锚点必须位于所属知识资产的原文范围内');
+        assert(rawText.slice(atom.anchor.start, atom.anchor.end) === atom.anchor.quote,
+          'atomicizer: 原子锚点与 RAW 原文不一致');
         assert(atom.statement === atom.anchor.quote, 'atomicizer: 原子陈述不能覆盖原文证据');
       }
     }
@@ -414,7 +426,9 @@ export class WorkflowService {
     if ((state.interaction_mode ?? 'legacy') === 'guided' && state.status === 'running' && state.current_stage
       && state.stages[stage].status === 'completed' && INTERACTION_PAUSE_STAGES.has(stage)) {
       state.interaction = { status: 'waiting_continue', after_stage: stage, next_stage: state.current_stage,
-        reason: `已完成 ${stage}，等待用户确认后继续`, created_at: now() };
+        reason: stage === 'theme_builder'
+          ? '已形成高层主题结构；建议用户只确认主题边界是否符合本轮目标，然后继续深度关系检查与蒸馏'
+          : `已完成 ${stage}，等待用户确认后继续`, created_at: now() };
     } else state.interaction = null;
     this.saveState(state);
     this.audit(runId, { stage, input_ids: envelope.inputs.map(x => x.artifact_id),

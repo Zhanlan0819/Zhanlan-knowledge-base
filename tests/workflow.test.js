@@ -418,27 +418,44 @@ test('Artifact provenance accepts internal stage-instruction identity', () => {
 });
 
 
-test('guided mode pauses after user-visible phases and requires explicit continue', () => {
+test('guided mode is decision-first: internal stages auto-run until theme structure checkpoint', () => {
   const store = temp();
   const service = new WorkflowService(store, { reviewerSecret: secret });
-  const result = service.start({ bytes, annotations, guided: true });
+  const result = service.start({ bytes, annotations, guided: true, userBrief: '把知识压缩成清晰主题，只在真正需要判断时停下' });
   const runId = result.run_id, s = result.suggestion;
   service.submit(runId, 'router', { assets: s.assets, risk_flags: [] });
   let resumed = service.resume(runId);
-  assert.equal(resumed.required_action, 'continue');
-  assert.equal(resumed.after_stage, 'router');
+  assert.equal(resumed.required_action, 'execute');
   assert.equal(resumed.next_stage, 'atomicizer');
-  assert.throws(() => service.submit(runId, 'atomicizer', { atoms: s.atoms }), /等待用户继续/);
-  service.continueRun(runId, { actor: 'user_interaction' });
   service.submit(runId, 'atomicizer', { atoms: s.atoms });
+  service.submit(runId, 'claims', { claims: s.claims });
+  service.submit(runId, 'family_builder', { families: s.families });
+  service.submit(runId, 'theme_builder', { themes: s.themes, major_change: 'none' });
+  resumed = service.resume(runId);
+  assert.equal(resumed.required_action, 'continue');
+  assert.equal(resumed.after_stage, 'theme_builder');
+  assert.equal(resumed.next_stage, 'reconciler');
+  assert.match(resumed.reason, /主题结构/);
+  assert.throws(() => service.submit(runId, 'reconciler', { relations: s.relations, version_judgement: false }), /等待用户继续/);
+  service.continueRun(runId, { actor: 'user_interaction' });
   resumed = service.resume(runId);
   assert.equal(resumed.required_action, 'execute');
+  assert.equal(resumed.next_stage, 'reconciler');
+  cleanup(store);
+});
+
+
+
+test('atomicizer may split one knowledge asset into multiple anchored atoms', () => {
+  const store = temp();
+  const { service, runId, s } = started(store);
+  service.submit(runId, 'router', { assets: s.assets, risk_flags: [] });
+  const first = s.atoms[0];
+  const extra = { ...first, id: 'atom_aaaaaaaaaaaaaaaa' };
+  service.submit(runId, 'atomicizer', { atoms: [...s.atoms, extra], unresolved_asset_ids: [] });
+  const resumed = service.resume(runId);
+  assert.equal(resumed.required_action, 'execute');
   assert.equal(resumed.next_stage, 'claims');
-  service.submit(runId, 'claims', { claims: s.claims });
-  resumed = service.resume(runId);
-  assert.equal(resumed.required_action, 'continue');
-  assert.equal(resumed.after_stage, 'claims');
-  assert.equal(resumed.next_stage, 'family_builder');
   cleanup(store);
 });
 
