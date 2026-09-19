@@ -1,15 +1,16 @@
 {
   "name": "axing-knowledge-system",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "type": "module",
-  "description": "单总控、决策优先的个人知识整理与知识蒸馏工作流。",
+  "description": "单总控、决策优先，带多路交付、本地审核面板与可安装 Skill 发布的个人知识整理工作流。",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "demo": "node src/workflow-cli.js demo --store .tmp/demo --input fixtures/mixed.txt --annotations fixtures/mixed.annotations.json"
+    "demo": "node src/workflow-cli.js demo --store .tmp/demo --input fixtures/mixed.txt --annotations fixtures/mixed.annotations.json",
+    "test:v063": "node --test tests/v063-runtime.test.js"
   },
   "dependencies": {
     "ajv": "^8.20.0"
