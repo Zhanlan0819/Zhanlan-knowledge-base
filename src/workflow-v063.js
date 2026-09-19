@@ -11,18 +11,18 @@ function parseOutput(output) {
 
 function governanceFromClaim(claim) {
   const map = {
-    explicit: { source_type: 'explicit_source', verification_status: 'reference_only', confidence: 'medium',
+    explicit: { source_type: 'explicit_unspecified', verification_status: 'reference_only', confidence: 'medium',
       use_scope: '可作为有原文锚点的明确陈述使用，但锚点验证不等于事实已被外部验证。',
-      forbidden_inference: '不得把“原文明确说过”升级成“已经证明为真”。' },
-    attributed: { source_type: 'attributed_external', verification_status: 'unverified', confidence: 'low',
+      forbidden_inference: ['不得把“原文明确说过”升级成“已经证明为真”。'] },
+    attributed: { source_type: 'attributed_external', verification_status: 'pending_verification', confidence: 'low',
       use_scope: '可作为署名/外部观点引用，使用时必须保留归属。',
-      forbidden_inference: '不得改写成用户自己的经验、事实或已验证规律。' },
-    editor_inference: { source_type: 'editor_inference', verification_status: 'unverified', confidence: 'low',
+      forbidden_inference: ['不得改写成用户自己的经验、事实或已验证规律。'] },
+    editor_inference: { source_type: 'ai_inference', verification_status: 'pending_verification', confidence: 'low',
       use_scope: '仅可作为整理阶段的推断候选。',
-      forbidden_inference: '不得伪装成来源原话或正式知识事实。' },
-    visual_unverified: { source_type: 'visual_unverified', verification_status: 'unverified', confidence: 'low',
+      forbidden_inference: ['不得伪装成来源原话或正式知识事实。'] },
+    visual_unverified: { source_type: 'visual_material', verification_status: 'pending_verification', confidence: 'low',
       use_scope: '仅作视觉材料转写参考，需二次核验。',
-      forbidden_inference: '不得把图片/视觉转写直接当作已验证事实。' }
+      forbidden_inference: ['不得把图片/视觉转写直接当作已验证事实。'] }
   };
   return map[claim.source_status] ?? map.editor_inference;
 }
