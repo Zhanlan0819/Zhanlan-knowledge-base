@@ -7,7 +7,7 @@ import {
 
 test('user-facing type labels are Chinese only', () => {
   assert.deepEqual(USER_VISIBLE_ASSET_TYPES, [
-    '知识内容', '项目案例', '文案素材', '观点灵感', '待办行动', '项目方案', '外部资料', '待整理'
+    '知识内容', '项目案例', '文案素材', '观点灵感', '待办行动', '备忘记录', '项目方案', '外部资料', '待整理'
   ]);
   assert.equal(assetTypeLabel('external'), '外部资料');
   assert.equal(assetTypeLabel('case'), '项目案例');
