@@ -110,11 +110,21 @@ export class WorkflowService extends LegacyWorkflowService {
       return super.submit(runId, stage, output, options);
     }
     const stateBefore = this.loadState(runId);
-    if (stage === 'skill_candidate') {
-      const canonicalIds = this.artifact(stateBefore, 'canonical').data.canonical_versions.map(x => x.id);
-      validatePromotionAudit(canonicalIds, options.promotionAudit, data.candidates ?? []);
+    try {
+      if (stage === 'skill_candidate') {
+        const canonicalIds = this.artifact(stateBefore, 'canonical').data.canonical_versions.map(x => x.id);
+        validatePromotionAudit(canonicalIds, options.promotionAudit, data.candidates ?? []);
+      }
+      if (stage === 'distiller') validateCoverageAudit(stateBefore.user_brief, options.coverageAudit);
+    } catch (error) {
+      // 治理 sidecar 也是正式阶段契约的一部分。缺失/不完整时应像 Schema 失败一样
+      // 留下 failed 状态与 AUDIT，这样 retry 可以正常重做，而不是停在半失败状态。
+      this.reportFailure(runId, stage, {
+        error: error.message,
+        producer: options.producer ?? 'runtime_governance'
+      });
+      throw error;
     }
-    if (stage === 'distiller') validateCoverageAudit(stateBefore.user_brief, options.coverageAudit);
 
     const result = super.submit(runId, stage, data, options);
     if (stage === 'claims') this.writeSourceGovernance(runId, data.claims);
