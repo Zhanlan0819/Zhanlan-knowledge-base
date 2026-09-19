@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { WorkflowService } from '../src/workflow-v063.js';
+import Ajv2020 from 'ajv/dist/2020.js';
 
 const secret = 'v063-test-secret';
 const bytes = Buffer.from('知识一。\n待办一。\n备忘一。\n文案一。\n灵感一。', 'utf8');
@@ -168,5 +169,25 @@ test('published Skill becomes an installable folder containing SKILL.md', () => 
     assert.ok(fs.existsSync(path.join(dir, 'metadata.json')));
     assert.ok(fs.existsSync(path.join(dir, 'test-prompts.json')));
     assert.ok(fs.existsSync(path.join(published.delivery.output_dir, 'skills', published.skills[0].id, 'SKILL.md')));
+  } finally { cleanup(store); }
+});
+
+
+test('source governance sidecar conforms to the v0.6.3 governance schema', () => {
+  const store = temp();
+  try {
+    const { service, runId, s } = start(store);
+    service.submit(runId, 'router', { assets: s.assets, risk_flags: [] });
+    service.submit(runId, 'atomicizer', { atoms: s.atoms });
+    service.submit(runId, 'claims', { claims: s.claims });
+    const sidecar = JSON.parse(fs.readFileSync(path.join(service.runDir(runId), 'governance', 'source-governance.json'), 'utf8'));
+    const schema = JSON.parse(fs.readFileSync(new URL('../schemas/source-governance.schema.json', import.meta.url), 'utf8'));
+    const validate = new Ajv2020({ allErrors: true }).compile(schema);
+    assert.equal(sidecar.claims.length, s.claims.length);
+    for (const item of sidecar.claims) {
+      assert.equal(validate(item.governance), true, JSON.stringify(validate.errors));
+      assert.ok(item.claim_id);
+      assert.ok(item.source_status);
+    }
   } finally { cleanup(store); }
 });
