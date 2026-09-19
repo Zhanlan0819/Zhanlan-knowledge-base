@@ -7,15 +7,26 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_PROJECT_ROOT = path.resolve(here, '..');
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 
+function registryCandidates(projectRoot) {
+  const root = path.resolve(projectRoot);
+  return [
+    path.resolve(root, 'skills/knowledge-orchestrator/stages.json'),
+    path.resolve(root, 'stages.json'),
+    path.resolve(here, '../skills/knowledge-orchestrator/stages.json')
+  ];
+}
+
 function readRegistry(projectRoot) {
-  const file = path.resolve(projectRoot, 'skills/knowledge-orchestrator/stages.json');
+  const file = registryCandidates(projectRoot).find(fs.existsSync);
+  if (!file) throw new Error(`找不到 stages.json；已检查: ${registryCandidates(projectRoot).join(', ')}`);
   const registry = JSON.parse(fs.readFileSync(file, 'utf8'));
   if (!registry?.stages || typeof registry.stages !== 'object') throw new Error('stages.json 缺少 stages');
-  return registry;
+  return { registry, file };
 }
 
 export function stageDefinition(stage, { projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
-  const def = readRegistry(projectRoot).stages[stage];
+  const { registry } = readRegistry(projectRoot);
+  const def = registry.stages[stage];
   if (!def) throw new Error(`阶段 ${stage} 不是模型执行阶段；它可能是系统/受保护阶段`);
   return def;
 }
@@ -28,12 +39,20 @@ function safeResolve(projectRoot, relative) {
 }
 
 export function loadStageInstruction(stage, { projectRoot = DEFAULT_PROJECT_ROOT } = {}) {
-  const def = stageDefinition(stage, { projectRoot });
-  const file = safeResolve(projectRoot, def.instruction);
-  if (!fs.existsSync(file)) throw new Error(`找不到 ${stage} 内部阶段指令: ${def.instruction}`);
+  const { registry, file: registryFile } = readRegistry(projectRoot);
+  const def = registry.stages[stage];
+  if (!def) throw new Error(`阶段 ${stage} 不是模型执行阶段；它可能是系统/受保护阶段`);
+  const root = path.resolve(projectRoot);
+  const candidates = [
+    safeResolve(root, def.instruction),
+    path.resolve(path.dirname(registryFile), path.basename(def.instruction)),
+    path.resolve(path.dirname(registryFile), 'stages', path.basename(def.instruction))
+  ];
+  const file = candidates.find(fs.existsSync);
+  if (!file) throw new Error(`找不到 ${stage} 内部阶段指令: ${def.instruction}`);
   const text = fs.readFileSync(file, 'utf8');
   return {
-    path: path.relative(path.resolve(projectRoot), file).replaceAll(path.sep, '/'),
+    path: path.relative(root, file).replaceAll(path.sep, '/'),
     label_zh: def.label_zh ?? '内部处理步骤',
     review_policy: def.review_policy ?? 'auto',
     text,
