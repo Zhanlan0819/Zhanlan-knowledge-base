@@ -150,7 +150,7 @@ export class WorkflowService extends LegacyWorkflowService {
 
   writeSourceGovernance(runId, claims) {
     return this.writeGovernance(runId, 'source-governance.json', {
-      claims: claims.map(claim => ({ claim_id: claim.id, source_status: claim.source_status, ...governanceFromClaim(claim) }))
+      claims: claims.map(claim => ({ claim_id: claim.id, source_status: claim.source_status, governance: governanceFromClaim(claim) }))
     });
   }
 
