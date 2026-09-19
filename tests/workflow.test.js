@@ -78,7 +78,7 @@ test('Router cannot omit part of RAW and Atomicizer cannot omit knowledge', () =
   assert.throws(() => service.submit(runId, 'router', { assets: s.assets.slice(0, 3), risk_flags: [] }),
     /未分流/);
   service.retry(runId, 'router', { assets: s.assets, risk_flags: [] });
-  assert.throws(() => service.submit(runId, 'atomicizer', { atoms: [] }), /未全映射/);
+  assert.throws(() => service.submit(runId, 'atomicizer', { atoms: [] }), /未全映射|至少要为每个知识资产提取一个原子/);
   assert.equal(service.loadState(runId).stages.atomicizer.status, 'failed');
   cleanup(store);
 });
