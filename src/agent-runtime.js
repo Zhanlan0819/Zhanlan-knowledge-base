@@ -69,7 +69,7 @@ export class AgentRuntime {
     const schema = readWorkflowSchema(this.projectRoot);
     const stageSchema = schema.$defs?.[stage] ?? null;
     const request = {
-      protocol: 'knowledge-stage-request/v0.6.0',
+      protocol: 'knowledge-stage-request/v0.6.3',
       run_id: runId,
       stage,
       stage_label_zh: stageLabel(stage),
@@ -131,8 +131,65 @@ export class AgentRuntime {
     const { request, resumed, instruction } = prepared;
     const attemptId = `attempt_${crypto.randomUUID()}`;
     let output;
+    let coverageAudit = null;
+    let promotionAudit = null;
     try {
       output = this.modelAdapter.generate(request);
+
+      // v0.6.3: Claim 的证据身份由程序从 Atom 复制，模型只负责 source_status。
+      // 这样模型即使做断行归一化、改写 statement 或 anchor，也不会污染证据层。
+      if (resumed.next_stage === 'claims') {
+        const atoms = this.service.artifact(resumed.state, 'atomicizer').data.atoms;
+        const proposed = new Map((output?.claims ?? []).map(x => [x.atom_id, x]));
+        output = { claims: atoms.map(atom => {
+          const p = proposed.get(atom.id) ?? {};
+          return {
+            id: typeof p.id === 'string' && p.id ? p.id : `claim_${sha(atom.id).slice(0, 16)}`,
+            atom_id: atom.id,
+            raw_id: atom.raw_id,
+            anchor: atom.anchor,
+            statement: atom.statement,
+            source_status: ['explicit','attributed','editor_inference','visual_unverified'].includes(p.source_status)
+              ? p.source_status : 'explicit',
+            evidence_status: 'anchor_verified'
+          };
+        }) };
+      }
+
+      if (resumed.next_stage === 'distiller' && resumed.state.user_brief) {
+        coverageAudit = this.modelAdapter.generate({
+          protocol: 'knowledge-coverage-audit/v0.6.3',
+          run_id: runId,
+          rules: [
+            '只返回 JSON，不要 Markdown。',
+            '把 user_brief 拆成可核对目标；只依据本轮 themes 与 distillations 判断覆盖情况。',
+            'priority 只能是 critical|high|normal|low；status 只能是 covered|partial|uncovered。',
+            '如果无法证明覆盖，宁可标 partial/uncovered，不要猜。',
+            '输出格式：{"goals":[{"goal":"...","priority":"high","status":"covered","evidence_ids":["distillation_x"],"reason":"..."}]}'
+          ],
+          context: {
+            user_brief: resumed.state.user_brief,
+            themes: this.service.artifact(resumed.state, 'theme_builder').data.themes,
+            distillations: output.distillations
+          }
+        });
+      }
+
+      if (resumed.next_stage === 'skill_candidate') {
+        const canonical = this.service.artifact(resumed.state, 'canonical').data.canonical_versions;
+        promotionAudit = this.modelAdapter.generate({
+          protocol: 'skill-promotion-audit/v0.6.3',
+          run_id: runId,
+          rules: [
+            '只返回 JSON，不要 Markdown。',
+            '必须逐条审计每个 Canonical，不能因为 candidates 为空就跳过。',
+            'outcome 只能是 promoted|not_skill|needs_more_evidence|covered_by_existing_skill。',
+            '每条必须写明 reason；promoted 必须能对应到本轮 candidates。',
+            '输出格式：{"items":[{"canonical_id":"canonical_x","outcome":"not_skill","reason":"..."}]}'
+          ],
+          context: { canonical, candidates: output.candidates ?? [] }
+        });
+      }
     } catch (error) {
       this.service.reportFailure(runId, resumed.next_stage, {
         error: `model invocation failed: ${error.message}`,
@@ -146,14 +203,15 @@ export class AgentRuntime {
       instruction_path: instruction.path,
       instruction_sha256: instruction.sha256,
       model: this.modelAdapter.id ?? 'unknown-model-adapter',
-      runner: 'AgentRuntime/v0.6.0',
+      runner: 'AgentRuntime/v0.6.3',
       attempt_id: attemptId,
       context_sha256: sha(JSON.stringify(request.context))
     };
     try {
+      const submitOptions = { producer: provenance.model, provenance, coverageAudit, promotionAudit };
       const result = resumed.required_action === 'retry'
-        ? this.service.retry(runId, resumed.next_stage, output, { producer: provenance.model, provenance })
-        : this.service.submit(runId, resumed.next_stage, output, { producer: provenance.model, provenance });
+        ? this.service.retry(runId, resumed.next_stage, output, submitOptions)
+        : this.service.submit(runId, resumed.next_stage, output, submitOptions);
       const after = this.service.resume(runId);
       const userReport = buildStageReport(this.service, after.state, resumed.next_stage);
       return { status: 'stage_completed', run_id: runId, stage: resumed.next_stage, stage_label_zh: stageLabel(resumed.next_stage),
