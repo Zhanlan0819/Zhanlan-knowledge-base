@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-export const ASSET_TYPES = ['knowledge', 'case', 'copy', 'idea', 'todo', 'project', 'external', 'unorganized'];
+export const ASSET_TYPES = ['knowledge', 'case', 'copy', 'idea', 'todo', 'memo', 'project', 'external', 'unorganized'];
 export const RELATIONS = ['REPEATS', 'REFINES', 'EXTENDS', 'CONTRADICTS', 'RETRACTS', 'ORIGIN', 'APPLICATION'];
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const id = (prefix, value) => `${prefix}_${sha(value).slice(0, 16)}`;
