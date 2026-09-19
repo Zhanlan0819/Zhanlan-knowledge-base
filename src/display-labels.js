@@ -4,6 +4,7 @@ export const ASSET_TYPE_LABELS = Object.freeze({
   copy: '文案素材',
   idea: '观点灵感',
   todo: '待办行动',
+  memo: '备忘记录',
   project: '项目方案',
   external: '外部资料',
   unorganized: '待整理'
