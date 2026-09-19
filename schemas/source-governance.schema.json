@@ -1,12 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.invalid/kb/source-governance.schema.json",
-  "title": "Source Governance Contract v0.6.2",
+  "title": "Source Governance Contract v0.6.3",
   "type": "object",
   "required": [
     "source_type",
     "verification_status",
-    "confidence"
+    "confidence",
+    "use_scope",
+    "forbidden_inference"
   ],
   "additionalProperties": false,
   "properties": {
@@ -17,7 +19,10 @@
         "external_material",
         "network_reference",
         "ai_inference",
-        "hypothesis"
+        "hypothesis",
+        "explicit_unspecified",
+        "attributed_external",
+        "visual_material"
       ]
     },
     "verification_status": {
