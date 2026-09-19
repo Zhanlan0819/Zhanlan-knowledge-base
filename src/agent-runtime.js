@@ -150,7 +150,7 @@ export class AgentRuntime {
             anchor: atom.anchor,
             statement: atom.statement,
             source_status: ['explicit','attributed','editor_inference','visual_unverified'].includes(p.source_status)
-              ? p.source_status : 'explicit',
+              ? p.source_status : 'editor_inference',
             evidence_status: 'anchor_verified'
           };
         }) };
