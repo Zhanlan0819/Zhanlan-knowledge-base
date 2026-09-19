@@ -103,7 +103,12 @@ export class WorkflowService extends LegacyWorkflowService {
   }
 
   submit(runId, stage, output, options = {}) {
-    const data = parseOutput(output);
+    let data;
+    try { data = parseOutput(output); }
+    catch {
+      // 交给基础 WorkflowService 记录标准 failed/audit 状态，而不是在保护层提前吞掉。
+      return super.submit(runId, stage, output, options);
+    }
     const stateBefore = this.loadState(runId);
     if (stage === 'skill_candidate') {
       const canonicalIds = this.artifact(stateBefore, 'canonical').data.canonical_versions.map(x => x.id);
