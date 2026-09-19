@@ -1,5 +1,6 @@
 import fs from 'node:fs';
-import { WorkflowService } from './workflow.js';
+import { WorkflowService } from './workflow-v063.js';
+import { startReviewServer } from './review-server.js';
 import { AgentRuntime, ExternalCommandModelAdapter } from './agent-runtime.js';
 import { presentResume, stageLabel, statusLabel, assetTypeLabel } from './display-labels.js';
 import { buildCurrentView, presentStageReport } from './user-presentation.js';
@@ -114,8 +115,14 @@ try {
       const stage = flag('--stage'), file = flag('--output');
       if (!stage || !file) throw new Error(`${action} 需要 --stage STAGE --output JSON`);
       const bytes = fs.readFileSync(file, 'utf8');
-      const result = action === 'submit' ? service.submit(runId, stage, bytes) : service.retry(runId, stage, bytes);
-      print({ run_id: runId, stage, status: result.state.stages[stage].status, checkpoint: result.state.checkpoints });
+      const auditFile = flag('--audit');
+      const audit = auditFile ? JSON.parse(fs.readFileSync(auditFile, 'utf8')) : null;
+      const submitOptions = stage === 'skill_candidate' ? { promotionAudit: audit }
+        : stage === 'distiller' ? { coverageAudit: audit } : {};
+      const result = action === 'submit' ? service.submit(runId, stage, bytes, submitOptions)
+        : service.retry(runId, stage, bytes, submitOptions);
+      print({ run_id: runId, stage, status: result.state.stages[stage].status, checkpoint: result.state.checkpoints,
+        ...(result.delivery ? { delivery: result.delivery.output_dir } : {}) });
     } else if (action === 'fail') {
       const stage = flag('--stage'), error = flag('--error');
       if (!stage || !error) throw new Error('fail 需要 --stage STAGE --error MESSAGE');
@@ -126,6 +133,13 @@ try {
       if (!caseId || !variant || !input) throw new Error('record-output 需要 --case ID --variant with_skill|without_skill|before|after --input FILE');
       const output = service.recordEvaluationOutput(runId, { caseId, variant, bytes: fs.readFileSync(input) });
       print({ run_id: runId, output_id: output.id, variant: output.variant });
+    } else if (action === 'review') {
+      const started = await startReviewServer({ store, runId, port: Number(flag('--port') ?? 0) });
+      print({ '审核面板': started.url, '说明': '在浏览器打开此地址完成签批；无需复制 decision/apply 命令。Ctrl+C 可关闭服务。' });
+      await new Promise(() => {});
+    } else if (action === 'export') {
+      const result = service.exportDeliveryBundle(runId, { outputDir: flag('--out') ?? null });
+      print({ run_id: runId, delivery: result.output_dir, totals: result.manifest.totals });
     } else if (action === 'decision' || action === 'rollback' || action === 'apply' || action === 'publish') {
       if (!process.stdin.isTTY || !hasReviewSigner())
         throw new Error('此命令只允许真人审阅终端运行，并需 KB_REVIEW_PRIVATE_KEY_FILE（推荐）或旧版 KB_REVIEW_SECRET');
@@ -154,6 +168,6 @@ try {
       const id = flag('--canonical');
       if (!id) throw new Error('trace 需要 --canonical ID');
       print(service.traceCanonical(runId, id));
-    } else throw new Error('可用命令: start, demo, view, status, resume, prepare-stage, run-stage, run-until-stop, continue, continue-run, submit, retry, fail, record-output, decision, apply, publish, rollback, trace');
+    } else throw new Error('可用命令: start, demo, view, status, resume, prepare-stage, run-stage, run-until-stop, continue, continue-run, submit, retry, fail, record-output, review, export, decision, apply, publish, rollback, trace');
   }
 } catch (error) { process.stderr.write(`错误: ${error.message}\n`); process.exitCode = 1; }
