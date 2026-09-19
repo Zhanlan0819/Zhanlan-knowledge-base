@@ -20,6 +20,18 @@
 
 前 3 项必须通过，后 2 项至少通过 1 项。未晋级内容继续作为知识或总控内部能力，不等于被淘汰。
 
+### 晋级审计是强制步骤
+
+不能只输出 `candidates: []` 就宣告“没有 Skill”。
+
+必须对**每一条 Canonical**形成一条晋级审计：
+- `promoted`：晋级为 Candidate；
+- `not_skill`：是有价值知识，但不构成独立 Skill；
+- `needs_more_evidence`：可能值得做 Skill，但证据/案例/边界不足；
+- `covered_by_existing_skill`：应并入已有能力而不是新建。
+
+每条都必须写明原因。只有逐条覆盖全部 Canonical 后，候选为空才是合法结论。
+
 ## RIA++
 
 候选必须包含：
