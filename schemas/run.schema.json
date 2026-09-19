@@ -21,7 +21,7 @@
       "properties": {
         "id": {"type": "string", "minLength": 1},
         "raw_id": {"type": "string", "minLength": 1},
-        "type": {"enum": ["knowledge", "case", "copy", "idea", "todo", "project", "external", "unorganized"]},
+        "type": {"enum": ["knowledge", "case", "copy", "idea", "todo", "memo", "project", "external", "unorganized"]},
         "anchor": {"$ref": "#/$defs/anchor"},
         "parent_tag": {"type": ["string", "null"]},
         "child_tag": {"type": ["string", "null"]},
