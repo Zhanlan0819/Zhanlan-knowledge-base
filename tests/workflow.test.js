@@ -83,6 +83,23 @@ test('Router cannot omit part of RAW and Atomicizer cannot omit knowledge', () =
   cleanup(store);
 });
 
+test('Theme graph requires exactly one primary Theme per Family', () => {
+  const store = temp();
+  const { service, runId, s } = started(store);
+  service.submit(runId, 'router', { assets: s.assets, risk_flags: [] });
+  service.submit(runId, 'atomicizer', { atoms: s.atoms });
+  service.submit(runId, 'claims', { claims: s.claims });
+  service.submit(runId, 'family_builder', { families: s.families });
+  const t1 = s.themes[0];
+  const t2 = { ...t1, id: 'theme_secondary_test', name: '另一个问题域',
+    central_question: '另一个独立问题是什么？',
+    primary_family_ids: [...t1.primary_family_ids] };
+  assert.throws(() => service.submit(runId, 'theme_builder', {
+    themes: [t1, t2], major_change: 'split_core'
+  }), /恰好有一个主 Theme/);
+  cleanup(store);
+});
+
 test('RAW cannot be overwritten through the service or same-content intake', () => {
   const store = temp();
   const { service, result } = started(store);
