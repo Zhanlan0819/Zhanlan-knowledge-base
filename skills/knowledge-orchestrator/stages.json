@@ -1,6 +1,6 @@
 {
-  "schema_version": "0.6.3",
-  "description": "知识整理总控 v0.6.3 内部阶段注册表。审批、交付与状态保护由 Runtime Correction 层执行。",
+  "schema_version": "0.7.0",
+  "description": "知识整理总控 v0.7.0 内部阶段注册表：多轴资产分类、主 Theme + 跨主题引用、来源治理与交付纪律。",
   "stages": {
     "router": {
       "instruction": "skills/knowledge-orchestrator/stages/router.md",
