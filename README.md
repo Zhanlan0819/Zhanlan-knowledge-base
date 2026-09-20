@@ -45,7 +45,7 @@ Theme 不再追求“越少越好”。每个 Family 只有一个主 Theme，但
 - schemas/：机器契约。
 - skills/knowledge-orchestrator/：唯一对外 Skill 与内部阶段规则。
 
-正常使用请走 src/workflow-cli.js，它已默认使用 v0.6.3 Runtime。不要直接编辑 RUN_STATE.json、Artifact 或审批记录绕流程。
+正常使用请走 src/workflow-cli.js，它使用 `src/workflow-v063.js` 这个历史文件名作为当前 v0.7.1 保护层。不要直接编辑 RUN_STATE.json、Artifact 或审批记录绕流程。
 
 ## 安装
 
@@ -191,7 +191,7 @@ node src/workflow-cli.js export --store my-store --run wf_...
 
 ~~~powershell
 npm test
-npm run test:v063
+npm run test:v071
 ~~~
 
 v0.7.1 回归在原有治理测试上新增：Claim 全量去向、必要方法必须展开、引用不能代替正文、卖点表 + 九点归一完整性回归；同时保留 v0.7 的多轴分类与 Theme 图谱测试。原有回归继续覆盖：rollback 后无需手改状态即可继续；非 Proposal Gate 不能签 AI 自由文本；空 Skill candidates 必须有逐条晋级审计；todo/memo/copy/idea 等进入最终交付；Formal Skill 必须真正生成 SKILL.md；AgentRuntime 使用 v0.7.1 协议入口。
