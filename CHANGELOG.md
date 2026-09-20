@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v0.7.1 Full-Knowledge Contract
+
+针对真实知识库中“来源还在，但正式知识被总结薄了”的问题新增完整知识契约：
+
+- Distiller 要求当前 Theme 的每条 Claim 必须明确去向，禁止静默丢失。
+- supporting_claim_ids 必须与真正进入正文或无损合并的 Claim 完全一致。
+- 新增 named_structures，强制识别 N点法/N步法、SOP、表格、清单、模板、框架、模型、公式与话术结构。
+- 必要的 named structure 必须 expanded_in_text，不能只写“参考 XX / 详见来源”。
+- 新增 self_contained=true 契约，正式知识在隐藏 Sources 后仍须独立可用。
+- Proposal 进入待确认前新增独立知识完整性审计；缺 Claim、缺结构或存在引用替代正文时必须 revise。
+- Delivery Bundle 新增 14_知识完整性审计.json。
+- 新增“卖点表 + 九点归一塑造法”回归测试，防止高密度知识再次被压成几个泛化方向。
+- 完整不等于复制原文：允许去重和重组，但不得丢失步骤、分类、判断标准、关键字段与必要案例。
+
+
 ## v0.7.0 Classification Architecture
 
 基于真实知识库整理结果与 DeepSeek + Darwin 对照复盘，重点修复“流程很严谨，但分类不够清楚”的中层知识架构问题：
