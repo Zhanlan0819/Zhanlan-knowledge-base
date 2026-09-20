@@ -69,7 +69,7 @@ export class AgentRuntime {
     const schema = readWorkflowSchema(this.projectRoot);
     const stageSchema = schema.$defs?.[stage] ?? null;
     const request = {
-      protocol: 'knowledge-stage-request/v0.7.0',
+      protocol: 'knowledge-stage-request/v0.7.1',
       run_id: runId,
       stage,
       stage_label_zh: stageLabel(stage),
@@ -108,6 +108,19 @@ export class AgentRuntime {
         ] : []),
         ...(stage === 'reconciler' ? [
           '优先识别真正需要人工决策的冲突、撤回和版本变化；重复、细化、补充、来源、应用可以自动记录，不要把所有关系都升级为人工问题。'
+        ] : []),
+        ...(stage === 'distiller' ? [
+          '正式知识不是摘要。当前 Theme 的每条 Claim 都必须在 claim_dispositions 中有且只有一个去向，不能因为篇幅、细节或“已经总结过”而消失。',
+          'supporting_claim_ids 必须与 treatment=included 或 merged_without_loss 的 Claim 完全一致。',
+          '主动扫描 N点法/N步法、SOP、表格、清单、模板、框架、模型、公式、话术结构等高信息密度结构，并写入 named_structures。',
+          '只要某个 named_structure 对当前 Theme 的理解或使用是必要的，就必须 required_for_theme=true 且 treatment=expanded_in_text；不能只写“参考XX”“详见来源”“可用XX方法”。',
+          'self_contained 必须为 true：假设 Sources 全部不可见，只看正文也应能完整理解和使用。',
+          '完整不等于原文复制；允许去重和重组，但步骤、分类、判断标准、关键字段和代表案例不能无理由压没。'
+        ] : []),
+        ...(stage === 'proposal' ? [
+          'Proposal 必须继承 Distillation 的完整知识，不得在进入待确认前二次压缩成摘要。',
+          '引用只负责溯源，不能替代正文。出现“参考XX/详见XX/可用XX”时，若该结构对当前问题必要，正文必须同时展开其具体内容。',
+          '用户应该在不打开 Sources 的情况下，仅凭 Proposal 正文就能学习和使用这条知识。'
         ] : [])
       ],
       stage_instruction: {
@@ -141,6 +154,7 @@ export class AgentRuntime {
     const attemptId = `attempt_${crypto.randomUUID()}`;
     let output;
     let coverageAudit = null;
+    let completenessAudit = null;
     let promotionAudit = null;
     try {
       output = this.modelAdapter.generate(request);
@@ -167,7 +181,7 @@ export class AgentRuntime {
 
       if (resumed.next_stage === 'distiller' && resumed.state.user_brief) {
         coverageAudit = this.modelAdapter.generate({
-          protocol: 'knowledge-coverage-audit/v0.6.3',
+          protocol: 'knowledge-coverage-audit/v0.7.1',
           run_id: runId,
           rules: [
             '只返回 JSON，不要 Markdown。',
@@ -184,10 +198,32 @@ export class AgentRuntime {
         });
       }
 
+      if (resumed.next_stage === 'proposal') {
+        completenessAudit = this.modelAdapter.generate({
+          protocol: 'knowledge-completeness-audit/v0.7.1',
+          run_id: runId,
+          rules: [
+            '你是独立的知识完整性审计员，不要替生成器辩护。只返回 JSON，不要 Markdown。',
+            '把所有 Sources 视为不可见，只判断 Proposal 正文自身是否足够完整。',
+            '必须逐条覆盖全部 Proposal；verdict 只能是 pass|revise。',
+            '重点检查：必要方法/SOP/表格/清单/模板是否在正文展开；是否存在“参考XX/详见XX/可用XX”却没有具体内容；included/merged_without_loss 的关键知识是否被压成泛化名词。',
+            '不要把“有 source_ids / supporting_claim_ids”当成正文完整。引用不能替代知识。',
+            'missing_claim_ids、missing_structures、reference_only_gaps 都必须是数组。只有三者全空且 self_contained=true 时才允许 pass。',
+            '输出格式：{"items":[{"proposal_id":"proposal_x","verdict":"pass","self_contained":true,"missing_claim_ids":[],"missing_structures":[],"reference_only_gaps":[],"reason":"..."}]}'
+          ],
+          context: {
+            themes: this.service.artifact(resumed.state, 'theme_builder').data.themes,
+            claims: this.service.artifact(resumed.state, 'claims').data.claims,
+            distillations: this.service.artifact(resumed.state, 'distiller').data.distillations,
+            proposals: output.proposals ?? []
+          }
+        });
+      }
+
       if (resumed.next_stage === 'skill_candidate') {
         const canonical = this.service.artifact(resumed.state, 'canonical').data.canonical_versions;
         promotionAudit = this.modelAdapter.generate({
-          protocol: 'skill-promotion-audit/v0.6.3',
+          protocol: 'skill-promotion-audit/v0.7.1',
           run_id: runId,
           rules: [
             '只返回 JSON，不要 Markdown。',
@@ -212,12 +248,12 @@ export class AgentRuntime {
       instruction_path: instruction.path,
       instruction_sha256: instruction.sha256,
       model: this.modelAdapter.id ?? 'unknown-model-adapter',
-      runner: 'AgentRuntime/v0.7.0',
+      runner: 'AgentRuntime/v0.7.1',
       attempt_id: attemptId,
       context_sha256: sha(JSON.stringify(request.context))
     };
     try {
-      const submitOptions = { producer: provenance.model, provenance, coverageAudit, promotionAudit };
+      const submitOptions = { producer: provenance.model, provenance, coverageAudit, completenessAudit, promotionAudit };
       const result = resumed.required_action === 'retry'
         ? this.service.retry(runId, resumed.next_stage, output, submitOptions)
         : this.service.submit(runId, resumed.next_stage, output, submitOptions);
