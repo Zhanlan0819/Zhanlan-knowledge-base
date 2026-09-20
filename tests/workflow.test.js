@@ -18,6 +18,24 @@ function started(store) {
   return { service, result, runId: result.run_id, s: result.suggestion };
 }
 
+function completeDistillation(s, { id = 'distill_1', text = null, namedStructures = [] } = {}) {
+  return {
+    id,
+    theme_id: s.themes[0].id,
+    supporting_claim_ids: [s.claims[0].id],
+    claim_dispositions: [{
+      claim_id: s.claims[0].id,
+      treatment: 'included',
+      reason: '该 Claim 是当前 Theme 的直接知识内容。',
+      destination: null
+    }],
+    named_structures: namedStructures,
+    self_contained: true,
+    text: text ?? s.proposals[0].text,
+    status: 'provisional'
+  };
+}
+
 function throughProposal(store) {
   const x = started(store);
   const { service, runId, s } = x;
@@ -27,8 +45,7 @@ function throughProposal(store) {
   service.submit(runId, 'family_builder', { families: s.families });
   service.submit(runId, 'theme_builder', { themes: s.themes, major_change: 'none' });
   service.submit(runId, 'reconciler', { relations: s.relations, version_judgement: false });
-  service.submit(runId, 'distiller', { distillations: [{ id: 'distill_1', theme_id: s.themes[0].id,
-    supporting_claim_ids: [s.claims[0].id], text: s.proposals[0].text, status: 'provisional' }] });
+  service.submit(runId, 'distiller', { distillations: [completeDistillation(s)] });
   service.submit(runId, 'proposal', { proposals: s.proposals });
   return x;
 }
@@ -142,8 +159,7 @@ test('Canonical Proposal stage rejects a proposal routed to another asset type',
   service.submit(runId, 'family_builder', { families: s.families });
   service.submit(runId, 'theme_builder', { themes: s.themes, major_change: 'none' });
   service.submit(runId, 'reconciler', { relations: s.relations, version_judgement: false });
-  service.submit(runId, 'distiller', { distillations: [{ id: 'distill_1', theme_id: s.themes[0].id,
-    supporting_claim_ids: [s.claims[0].id], text: s.proposals[0].text, status: 'provisional' }] });
+  service.submit(runId, 'distiller', { distillations: [completeDistillation(s)] });
   assert.throws(() => service.createProposal(runId, [{ ...s.proposals[0], target: 'copy' }]),
     /canonical_knowledge|Schema/);
   assert.equal(service.loadState(runId).stages.proposal.status, 'failed');
@@ -407,8 +423,7 @@ test('Ed25519 public-key verifier can resume signed review but cannot sign prote
   signer.submit(runId, 'family_builder', { families: s.families });
   signer.submit(runId, 'theme_builder', { themes: s.themes, major_change: 'none' });
   signer.submit(runId, 'reconciler', { relations: s.relations, version_judgement: false });
-  signer.submit(runId, 'distiller', { distillations: [{ id: 'distill_ed25519', theme_id: s.themes[0].id,
-    supporting_claim_ids: [s.claims[0].id], text: s.proposals[0].text, status: 'provisional' }] });
+  signer.submit(runId, 'distiller', { distillations: [completeDistillation(s, { id: 'distill_ed25519' })] });
   signer.submit(runId, 'proposal', { proposals: s.proposals });
   const reviewed = signer.recordDecision(runId, { checkpoint: 'canonical_proposal',
     proposalId: s.proposals[0].id, decision: 'approved' }, { actor: 'user_review_service' });
