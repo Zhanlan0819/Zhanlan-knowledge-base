@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.invalid/kb/workflow-artifacts.schema.json",
-  "title": "Knowledge System Stage Contracts v0.6.1",
+  "title": "Knowledge System Stage Contracts v0.7.0",
   "$defs": {
     "intake": {
       "type": "object",
