@@ -306,12 +306,18 @@ export class WorkflowService {
     if (stage === 'theme_builder') {
       const families = prev.families;
       const assigned = data.themes.flatMap(t => t.family_ids);
+      const primaryAssigned = data.themes.flatMap(t => t.primary_family_ids);
       assert(families.length > 0 && families.every(f => assigned.includes(f.id)), 'theme_builder: Family 未被主题覆盖');
+      assert(families.every(f => primaryAssigned.filter(x => x === f.id).length === 1),
+        'theme_builder: 每个 Family 必须恰好有一个主 Theme；允许作为次级引用进入其它 Theme');
       for (const theme of data.themes) {
         assert(theme.central_question?.trim() && theme.inclusion?.trim() && theme.exclusion?.trim(),
           'theme_builder: Theme 缺中心问题/纳入/排除条件');
         assert(unique(theme.family_ids) && theme.family_ids.every(x => families.some(f => f.id === x)),
           'theme_builder: Family 引用断裂');
+        assert(unique(theme.primary_family_ids) && theme.primary_family_ids.length > 0
+          && theme.primary_family_ids.every(x => theme.family_ids.includes(x)),
+          'theme_builder: primary_family_ids 必须非空且是 family_ids 的子集');
       }
     }
     if (stage === 'reconciler') for (const edge of data.relations) {
