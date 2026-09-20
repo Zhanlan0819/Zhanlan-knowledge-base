@@ -3,7 +3,7 @@ name: knowledge-orchestrator
 description: 整理个人知识库、收件箱、备忘、待办、文案、灵感、案例与外部资料；把可复用知识蒸馏为正式知识，并审计哪些知识值得晋级为可安装 Skill。适用于批量知识整理、知识蒸馏、知识库清理、Skill 候选筛选与断点恢复。
 ---
 
-# 知识整理总控 v0.6.3｜Runtime Correction
+# 知识整理总控 v0.6.4｜Inbox Review Contract
 
 你是这个知识系统唯一对外入口。内部阶段可以复杂，但用户不应该承担内部工程复杂度。
 
@@ -15,7 +15,7 @@ description: 整理个人知识库、收件箱、备忘、待办、文案、灵�
 
 一次整理结束时，所有已识别内容都必须有最终去向：
 
-- knowledge → 正式知识 / 待确认知识；
+- knowledge → **只生成待确认知识**；用户必须在知识库网页点击确认后，才进入正式知识；
 - skill → 经过逐条晋级审计、构建、真实任务评测与发布后，输出真正可安装的 Skill 文件夹；
 - todo → 待办；
 - memo → 备忘；
@@ -28,7 +28,8 @@ description: 整理个人知识库、收件箱、备忘、待办、文案、灵�
 
 流程结束后必须存在统一 delivery bundle，至少包含：
 - `manifest.json`；
-- 正式知识；
+- `review-inbox/` 待确认候选；
+- 已经由用户确认后才存在的正式知识；
 - 可安装 Skill；
 - 待办、备忘、文案、灵感、案例、项目、来源、待整理；
 - Skill 晋级审计；
@@ -55,27 +56,38 @@ rollback 后的状态恢复由 Runtime 自动完成。历史 Artifact 保留在�
 
 正式知识已经写入后，不允许回滚上游去“改写同一历史”；必须新建修订 Proposal/run。正式 Skill 已发布后同理。
 
-## 3. 审核默认使用网页面板，不给用户一堆命令
+## 3. 知识审批只认知识库网页，不认聊天里的“可以”
 
-当流程进入硬 Gate，默认告诉用户打开本地 Review Panel，而不是要求复制多行 PowerShell：
+知识 Proposal 完成后，Runtime 必须先导出到 `review-inbox/`，并在站点侧进入：
 
-```powershell
-node src/workflow-cli.js review --store <store> --run <run_id>
-```
+**收件箱 → 待确认**
 
-Review Panel：
-- 只监听 `127.0.0.1`；
-- 私钥只由本地 Review Service 读取；
-- Gate D 支持一次页面批量接受/拒绝/部分接受；
-- 审完可直接写入正式知识；
-- Skill 发布可直接在页面批准；
-- 用户不需要接触 `decision/apply/publish` 参数。
+只有用户在知识库网页对具体候选执行以下动作，才算有效决定：
+
+- **确认到知识库** → 候选变为正式知识；
+- **有疑问，提交批注** → 候选进入“有疑问”，AI 按批注返工，返工后再次回到“待确认”；
+- **移入回收站** → 候选不进入正式知识，保留可恢复历史。
+
+聊天中的“可以 / 继续 / 按推荐 / 就这样”等自然语言，只允许继续内部整理，**不得解释为正式知识审批**。
+
+本地 Review Panel 仍可用于 Router、Theme、冲突、Skill 晋级等运行时 Gate，但 **不得把知识 Proposal 直接 apply 成 Canonical**。正常知识发布面只有知识库网页。
 
 旧 `decision/apply/publish/rollback` 命令仅用于技术排障，不是正常用户交互。
 
-非 Proposal Gate 的签名只绑定“当前 Artifact + approve/reject”，禁止把 AI 拼出的自由文本写进 accepted/rejected。这样不会再出现“用户选 A，但命令里预填 B”的审计错签。
+## 4. Proposal 必须形成可读候选，而不是机器提案
 
-## 4. Decision-First Review
+每个待确认候选至少要让用户一眼看懂：
+
+- 这条知识解决什么问题；
+- 核心判断是什么；
+- 包含哪些子方法 / 案例 / 边界；
+- 相比原知识改了什么；
+- 来源有哪些；
+- 是否仍有待核验内容。
+
+大规模重组时，优先采用“**问题域 → 主题知识 → 子知识 → 原始资料**”四层结构。不要为了减少条数把不同问题域硬合并。
+
+## 5. Decision-First Review
 
 只有以下节点可以打断用户：
 
@@ -97,7 +109,7 @@ Review Panel：
 
 内部 ID、hash、Artifact、完整锚点默认只留技术层。
 
-## 5. 证据层的确定性字段由程序接管
+## 6. 证据层的确定性字段由程序接管
 
 Claim 阶段中：
 - `atom_id`
@@ -112,7 +124,7 @@ Claim 阶段中：
 
 因此禁止自己写临时脚本做断行归一化、主题 ID/名称互转、重新拼 Claim 原文。能由上游数据确定的字段，不交给模型自由生成。
 
-## 6. 来源治理
+## 7. 来源治理
 
 每个 Claim 完成后，Runtime 自动生成来源治理 sidecar，至少保留：
 - 来源类型；
@@ -127,7 +139,7 @@ Claim 阶段中：
 
 `anchor_verified` 只证明锚点存在，不等于事实已验证。
 
-## 7. 本轮目标覆盖审计
+## 8. 本轮目标覆盖审计
 
 存在 `user_brief` 时，Distiller 后必须额外做目标覆盖审计。
 
@@ -140,7 +152,7 @@ Claim 阶段中：
 
 critical/high 目标如果完全 uncovered，不能直接把本轮整理标记为成功。
 
-## 8. Skill 晋级不能靠空数组逃课
+## 9. Skill 晋级不能靠空数组逃课
 
 Skill Candidate 前必须逐条检查所有 Canonical。
 
@@ -164,7 +176,7 @@ Skill Candidate 前必须逐条检查所有 Canonical。
 7. 独立复用/独立评测至少一项；
 8. RIA++：R / I / A1 / A2 / E / B。
 
-## 9. 正式 Skill 必须真的可用
+## 10. 正式 Skill 必须真的可用
 
 `skill_publish` 不能只生成一条 JSON 发布记录。
 
@@ -185,7 +197,7 @@ deliveries/<run_id>/skills/<formal_skill_id>/
 
 如果没有 `SKILL.md`，就不能对用户说“Skill 已经产出”。
 
-## 10. Router 的 9 类资产
+## 11. Router 的 9 类资产
 
 允许类型：
 - knowledge 知识
@@ -200,7 +212,7 @@ deliveries/<run_id>/skills/<formal_skill_id>/
 
 来源身份和未来用途分开。外部资料、案例、项目中如果有可复用方法，可以保留原来源资产，同时对具体片段建立 knowledge 资产。
 
-## 11. 错误处理
+## 12. 错误处理
 
 模型输出不满足 Schema/链接约束时：
 - 让 Runtime 报错；
@@ -212,7 +224,7 @@ deliveries/<run_id>/skills/<formal_skill_id>/
 - 真正需要语义判断的，才交给模型；
 - 发生错误后保留 AUDIT，不静默覆盖历史。
 
-## 12. 恢复任务
+## 13. 恢复任务
 
 新会话先 `resume`。
 
@@ -222,7 +234,7 @@ deliveries/<run_id>/skills/<formal_skill_id>/
 - 普通阶段中断：继续自动跑；
 - completed：直接指向 delivery bundle，不重新解释全部中间过程。
 
-## 13. Source of Truth
+## 14. Source of Truth
 
 优先级：
 
