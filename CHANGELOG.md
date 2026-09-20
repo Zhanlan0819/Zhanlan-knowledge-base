@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v0.7.0 Classification Architecture
+
+基于真实知识库整理结果与 DeepSeek + Darwin 对照复盘，重点修复“流程很严谨，但分类不够清楚”的中层知识架构问题：
+
+- Router 从单一分类升级为四轴资产模型：type、source_identity、topic_tags、verification_status。
+- 保留 9 条交付通道，但“知识是什么”和“内容从哪里来”不再互斥；外部课程知识可同时表示为 knowledge + external_course。
+- Source Governance 读取 Router 的来源身份与验证状态，不再把所有 explicit 内容都压成 unspecified。
+- Family 明确只表达语义同一性，不承担主题导航，不再为了压缩数量提前合并。
+- Theme 改为知识图谱视图：每个 Family 恰好一个主 Theme，同时允许被其它 Theme 次级引用。
+- 明确取消“Theme 越少越好”的隐性目标；Review Compression 不得作为合并不同问题域的理由。
+- 增加 Theme 拆分判断：不同中心问题、不同独立交付单元、仅因大领域相同而聚合时优先拆分。
+- Distiller 支持主 Family 与跨主题引用共同提供证据，但禁止复制另一个 Theme 的完整正文。
+- 新增多轴分类、跨主题引用与主 Theme 唯一性的回归测试。
+- AgentRuntime 升级为 v0.7 协议提示，并将以上规则下沉到模型请求。
+
+
 ## v0.6.3 Runtime Correction
 
 基于真实端到端知识库整理运行复盘，修复工程层问题：
