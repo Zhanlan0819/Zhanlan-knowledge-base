@@ -111,6 +111,33 @@ test('rollback rejection resets downstream to not_started and apply succeeds wit
   } finally { cleanup(store); }
 });
 
+test('knowledge completeness audit blocks reference-only Proposal before review', () => {
+  const store = temp();
+  try {
+    const x = throughTheme(store);
+    const { service, runId, s } = x;
+    service.submit(runId, 'reconciler', { relations: [], version_judgement: false });
+    service.submit(runId, 'distiller', { distillations: [completeDistillation(s, {
+      text: '完整知识正文。'
+    })] });
+
+    const proposal = [{ ...s.proposals[0], text: '卖点表和九点归一可以作为发散素材，详见来源。' }];
+    const badAudit = { items: [{
+      proposal_id: proposal[0].id,
+      verdict: 'revise',
+      self_contained: false,
+      missing_claim_ids: [],
+      missing_structures: ['卖点表', '九点归一塑造法'],
+      reference_only_gaps: ['正文只留下方法名和来源指针，没有展开具体内容。'],
+      reason: '隐藏 Sources 后无法独立学习和使用。'
+    }] };
+    assert.throws(() => service.submit(runId, 'proposal', { proposals: proposal }, {
+      completenessAudit: badAudit
+    }), /知识候选不完整/);
+    assert.equal(service.loadState(runId).stages.proposal.status, 'failed');
+  } finally { cleanup(store); }
+});
+
 test('non-proposal gate rejects free-text accepted payload so AI cannot sign the wrong option text', () => {
   const store = temp();
   try {
