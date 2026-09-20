@@ -132,6 +132,11 @@ export class WorkflowService extends LegacyWorkflowService {
     if (stage === 'skill_candidate' && options.promotionAudit)
       this.writeGovernance(runId, 'skill-promotion-audit.json', options.promotionAudit);
 
+    if (stage === 'proposal') {
+      // v0.6.4: Proposal 先物化为“待确认”交付，不把聊天继续动作当作正式审批。
+      result.delivery = exportDeliveryBundle(this, runId);
+    }
+
     if (['completed', 'completed_nonknowledge'].includes(result.state.status)) {
       const delivery = exportDeliveryBundle(this, runId);
       result.delivery = delivery;
