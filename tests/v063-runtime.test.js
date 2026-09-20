@@ -32,6 +32,36 @@ function start(store, { userBrief = null } = {}) {
   return { service, runId: r.run_id, s: r.suggestion };
 }
 
+function completeDistillation(s, { id = 'dist_1', text = null, namedStructures = [] } = {}) {
+  return {
+    id,
+    theme_id: s.themes[0].id,
+    supporting_claim_ids: [s.claims[0].id],
+    claim_dispositions: [{
+      claim_id: s.claims[0].id,
+      treatment: 'included',
+      reason: '该 Claim 是当前 Theme 的直接知识内容。',
+      destination: null
+    }],
+    named_structures: namedStructures,
+    self_contained: true,
+    text: text ?? s.proposals[0].text,
+    status: 'provisional'
+  };
+}
+
+function passingCompletenessAudit(proposals) {
+  return { items: proposals.map(p => ({
+    proposal_id: p.id,
+    verdict: 'pass',
+    self_contained: true,
+    missing_claim_ids: [],
+    missing_structures: [],
+    reference_only_gaps: [],
+    reason: '测试候选为最小自包含知识。'
+  })) };
+}
+
 function throughTheme(store, { majorChange = 'none' } = {}) {
   const x = start(store);
   const { service, runId, s } = x;
@@ -47,11 +77,8 @@ function throughCanonical(store) {
   const x = throughTheme(store);
   const { service, runId, s } = x;
   service.submit(runId, 'reconciler', { relations: [], version_judgement: false });
-  service.submit(runId, 'distiller', { distillations: [{
-    id: 'dist_1', theme_id: s.themes[0].id, supporting_claim_ids: [s.claims[0].id],
-    text: s.proposals[0].text, status: 'provisional'
-  }] });
-  service.submit(runId, 'proposal', { proposals: s.proposals });
+  service.submit(runId, 'distiller', { distillations: [completeDistillation(s)] });
+  service.submit(runId, 'proposal', { proposals: s.proposals }, { completenessAudit: passingCompletenessAudit(s.proposals) });
   service.recordDecision(runId, { checkpoint: 'canonical_proposal', proposalId: s.proposals[0].id, decision: 'approved' },
     { actor: 'user_review_service' });
   const canonical = service.applyApprovedProposals(runId, { actor: 'user_review_service' }).versions[0];
@@ -79,7 +106,7 @@ test('rollback rejection resets downstream to not_started and apply succeeds wit
       id: 'dist_1', theme_id: s.themes[0].id, supporting_claim_ids: [s.claims[0].id],
       text: s.proposals[0].text, status: 'provisional'
     }] });
-    service.submit(runId, 'proposal', { proposals: s.proposals });
+    service.submit(runId, 'proposal', { proposals: s.proposals }, { completenessAudit: passingCompletenessAudit(s.proposals) });
     service.recordDecision(runId, { checkpoint: 'canonical_proposal', proposalId: s.proposals[0].id, decision: 'approved' },
       { actor: 'user_review_service' });
     const applied = service.applyApprovedProposals(runId, { actor: 'user_review_service' });
