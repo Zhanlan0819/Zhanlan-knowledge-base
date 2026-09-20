@@ -9,7 +9,7 @@ function parseOutput(output) {
   return typeof output === 'string' ? JSON.parse(output) : output;
 }
 
-function governanceFromClaim(claim) {
+function governanceFromClaim(claim, asset = null) {
   const map = {
     explicit: { source_type: 'explicit_unspecified', verification_status: 'reference_only', confidence: 'medium',
       use_scope: '可作为有原文锚点的明确陈述使用，但锚点验证不等于事实已被外部验证。',
@@ -24,7 +24,32 @@ function governanceFromClaim(claim) {
       use_scope: '仅作视觉材料转写参考，需二次核验。',
       forbidden_inference: ['不得把图片/视觉转写直接当作已验证事实。'] }
   };
-  return map[claim.source_status] ?? map.editor_inference;
+  const base = { ...(map[claim.source_status] ?? map.editor_inference) };
+  const identityMap = {
+    user_experience: 'user_experience',
+    user_view: 'user_view',
+    project_practice: 'project_practice',
+    client_material: 'client_material',
+    external_course: 'external_course',
+    external_reference: 'external_reference',
+    mixed: 'mixed_source',
+    unknown: 'unknown_source'
+  };
+  // AI 推断/视觉转写优先保留其证据性质；其它显式陈述再用 Router 的来源身份细分。
+  if (!['editor_inference', 'visual_unverified'].includes(claim.source_status) && asset?.source_identity)
+    base.source_type = identityMap[asset.source_identity] ?? base.source_type;
+
+  const verificationMap = {
+    unverified: 'pending_verification',
+    user_verified: 'verified',
+    project_verified: 'verified',
+    externally_verified: 'verified',
+    conflicted: 'partially_verified',
+    not_applicable: 'reference_only'
+  };
+  if (asset?.verification_status) base.verification_status = verificationMap[asset.verification_status] ?? base.verification_status;
+  if (base.verification_status === 'verified' && claim.source_status === 'explicit') base.confidence = 'high';
+  return base;
 }
 
 function validatePromotionAudit(canonicalIds, audit, candidates) {
@@ -148,14 +173,28 @@ export class WorkflowService extends LegacyWorkflowService {
     const dir = path.join(this.runDir(runId), 'governance');
     fs.mkdirSync(dir, { recursive: true });
     const file = path.join(dir, name);
-    const bytes = JSON.stringify({ schema_version: '0.6.3', run_id: runId, generated_at: new Date().toISOString(), ...data }, null, 2);
+    const bytes = JSON.stringify({ schema_version: '0.7.0', run_id: runId, generated_at: new Date().toISOString(), ...data }, null, 2);
     fs.writeFileSync(file, bytes, 'utf8');
     return file;
   }
 
   writeSourceGovernance(runId, claims) {
+    const state = this.loadState(runId);
+    const atoms = this.artifact(state, 'atomicizer').data.atoms;
+    const assets = this.artifact(state, 'router').data.assets;
     return this.writeGovernance(runId, 'source-governance.json', {
-      claims: claims.map(claim => ({ claim_id: claim.id, source_status: claim.source_status, governance: governanceFromClaim(claim) }))
+      claims: claims.map(claim => {
+        const atom = atoms.find(x => x.id === claim.atom_id);
+        const asset = assets.find(x => x.id === atom?.asset_id) ?? null;
+        return {
+          claim_id: claim.id,
+          source_status: claim.source_status,
+          source_asset_id: asset?.id ?? null,
+          source_identity: asset?.source_identity ?? 'unknown',
+          asset_verification_status: asset?.verification_status ?? 'unverified',
+          governance: governanceFromClaim(claim, asset)
+        };
+      })
     });
   }
 
@@ -187,7 +226,7 @@ export class WorkflowService extends LegacyWorkflowService {
         generated_at: new Date().toISOString()
       }, null, 2), 'utf8');
       fs.writeFileSync(path.join(dir, 'test-prompts.json'), JSON.stringify({
-        schema_version: '0.6.3',
+        schema_version: '0.7.0',
         evaluation_id: evaluation.id,
         test_case_ids: evaluation.test_case_ids,
         note: '本文件保存评测 case ID 与发布关联；真实输入/输出仍在 evaluation-outputs 与 evaluator Artifact 中。'
