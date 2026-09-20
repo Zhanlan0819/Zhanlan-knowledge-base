@@ -36,18 +36,11 @@ function page(service, runId, token, message = '') {
     const proposals = service.artifact(state, 'proposal').data.proposals;
     const sourceId = state.stages.proposal.artifact_id;
     const done = new Map(state.decisions.filter(d => d.checkpoint === cpName && d.source_artifact_id === sourceId).map(d => [d.proposal_id, d]));
-    main = `<section><h2>正式知识提案</h2><p>逐条选择，最后一次提交即可。无需复制任何命令。</p>
-    <form method="post" action="/batch?token=${token}">${proposals.map((p,i) => {
-      const old = done.get(p.id);
-      return `<article class="card"><h3>${i+1}. ${esc(p.id)}</h3><pre>${esc(p.text)}</pre>
-      ${old ? `<p class="done">已处理：${esc(old.decision)}</p>` : `
-      <label><input type="radio" name="d_${esc(p.id)}" value="approved" checked> 接受</label>
-      <label><input type="radio" name="d_${esc(p.id)}" value="rejected"> 拒绝</label>
-      <label><input type="radio" name="d_${esc(p.id)}" value="partial"> 部分接受</label>
-      <textarea name="p_${esc(p.id)}" placeholder="仅“部分接受”时填写最终接受文本"></textarea>`}</article>`;
-    }).join('')}
-    <label class="apply"><input type="checkbox" name="apply_now" value="1" checked> 全部审完后立即写入正式知识</label>
-    <button type="submit">提交本页决定</button></form></section>`;
+    main = `<section><h2>正式知识提案</h2>
+    <p>这些提案只用于预览。正式审核必须在知识库网页的“收件箱 → 待确认”完成。</p>
+    <p>聊天里的“继续/可以”以及本地 Review Panel 都不能把 Proposal 直接写成正式知识。</p>
+    ${proposals.map((p,i) => `<article class="card"><h3>${i+1}. ${esc(p.id)}</h3><pre>${esc(p.text)}</pre></article>`).join('')}
+    <p class="done">候选文件已输出到 delivery bundle 的 review-inbox/，请由站点导入或同步后审核。</p></section>`;
   } else {
     main = `<section><h2>需要你判断</h2><p><b>${esc(cpName)}</b></p><p>${esc(cp.reason)}</p>
     <p>批准表示“接受当前 Artifact”，不会签入 AI 拼出来的自由文本。若内容需要改，选择退回修改。</p>
@@ -60,8 +53,7 @@ function page(service, runId, token, message = '') {
 
   const publishButton = resumed.required_action === 'publish_approved_skill'
     ? `<form method="post" action="/publish?token=${token}"><button type="submit">发布已批准 Skill</button></form>` : '';
-  const applyButton = resumed.required_action === 'apply_approved_proposals'
-    ? `<form method="post" action="/apply?token=${token}"><button type="submit">写入已批准正式知识</button></form>` : '';
+  const applyButton = '';
 
   return `<!doctype html><meta charset="utf-8"><title>知识整理审核</title>
   <style>body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;max-width:980px;margin:32px auto;padding:0 18px;color:#1f2328;background:#f6f8fa}
@@ -91,27 +83,6 @@ export async function startReviewServer({ store, runId, port = 0, host = '127.0.
         service.recordDecision(runId, { checkpoint: form.checkpoint, decision: form.decision },
           { actor: 'user_review_service' });
         message = form.decision === 'approved' ? '已批准当前版本。' : '已退回当前版本，等待 AI 重做该阶段。';
-      } else if (req.method === 'POST' && url.pathname === '/batch') {
-        const form = parseForm(await readBody(req));
-        const state = service.loadState(runId);
-        const proposals = service.artifact(state, 'proposal').data.proposals;
-        const sourceId = state.stages.proposal.artifact_id;
-        const done = new Set(state.decisions.filter(d => d.checkpoint === 'canonical_proposal' && d.source_artifact_id === sourceId).map(d => d.proposal_id));
-        for (const p of proposals) {
-          if (done.has(p.id)) continue;
-          const decision = form[`d_${p.id}`] || 'approved';
-          const acceptedChanges = decision === 'partial' ? [String(form[`p_${p.id}`] || '').trim()] : [];
-          service.recordDecision(runId, { checkpoint: 'canonical_proposal', proposalId: p.id, decision, acceptedChanges },
-            { actor: 'user_review_service' });
-        }
-        const after = service.resume(runId);
-        if (form.apply_now === '1' && after.required_action === 'apply_approved_proposals') {
-          service.applyApprovedProposals(runId, { actor: 'user_review_service' });
-          message = '提案已批量审阅并写入正式知识。';
-        } else message = '提案已批量审阅。';
-      } else if (req.method === 'POST' && url.pathname === '/apply') {
-        service.applyApprovedProposals(runId, { actor: 'user_review_service' });
-        message = '已写入正式知识。';
       } else if (req.method === 'POST' && url.pathname === '/publish') {
         service.publishApprovedSkill(runId, { actor: 'user_review_service' });
         message = '已发布正式 Skill，并生成可安装 SKILL.md 文件夹。';
