@@ -41,6 +41,26 @@ export function exportDeliveryBundle(service, runId, { outputDir = null } = {}) 
   const byType = {};
   for (const asset of router.assets ?? []) (byType[asset.type] ||= []).push(assetView(asset));
 
+  const proposals = state.stages.proposal?.artifact_id
+    ? service.artifact(state, 'proposal').data.proposals ?? [] : [];
+  const reviewDir = path.join(root, 'review-inbox');
+  ensure(reviewDir);
+  for (const item of proposals) {
+    const body = [
+      '---',
+      'status: "待确认"',
+      'entry_type: "knowledge"',
+      'origin: "skill-run"',
+      `run_id: "${runId}"`,
+      `proposal_id: "${item.id}"`,
+      '---',
+      '',
+      item.text
+    ].join('\n');
+    fs.writeFileSync(path.join(reviewDir, `${safeName(item.id)}.md`), body, 'utf8');
+    writeJson(path.join(reviewDir, `${safeName(item.id)}.json`), { ...item, status: '待确认', run_id: runId });
+  }
+
   const canonical = state.stages.canonical.artifact_id && ['completed','not_started','needs_revision'].includes(state.stages.canonical.status)
     ? service.artifact(state, 'canonical').data.canonical_versions ?? [] : [];
   const knowledgeDir = path.join(root, 'knowledge');
@@ -85,6 +105,7 @@ export function exportDeliveryBundle(service, runId, { outputDir = null } = {}) 
   const totals = {
     source_assets: router.assets?.length ?? 0,
     knowledge_candidates: byType.knowledge?.length ?? 0,
+    pending_review: proposals.length,
     canonical_knowledge: canonical.length,
     skills: skillPackages.length,
     todo: byType.todo?.length ?? 0,
@@ -97,13 +118,14 @@ export function exportDeliveryBundle(service, runId, { outputDir = null } = {}) 
     unorganized: byType.unorganized?.length ?? 0
   };
   const manifest = {
-    schema_version: '0.6.3',
+    schema_version: '0.6.4',
     run_id: runId,
     status: state.status,
     generated_at: new Date().toISOString(),
     totals,
     skill_packages: skillPackages,
     files: {
+      review_inbox_dir: 'review-inbox/',
       knowledge_dir: 'knowledge/',
       skills_dir: 'skills/',
       ...TYPE_FILES
@@ -115,7 +137,8 @@ export function exportDeliveryBundle(service, runId, { outputDir = null } = {}) 
     '# 本轮整理交付',
     '',
     `- 原始分流资产：${totals.source_assets}`,
-    `- 正式知识：${totals.canonical_knowledge}`,
+    `- 待确认知识：${totals.pending_review}`,
+    `- 已确认正式知识：${totals.canonical_knowledge}`,
     `- 可安装 Skill：${totals.skills}`,
     `- 待办：${totals.todo}`,
     `- 备忘：${totals.memo}`,
@@ -126,7 +149,7 @@ export function exportDeliveryBundle(service, runId, { outputDir = null } = {}) 
     `- 来源资料：${totals.external}`,
     `- 待整理：${totals.unorganized}`,
     '',
-    '所有机器层追溯信息仍保留在 workflow store；本目录只放可直接使用或导入的交付物。'
+    '知识候选必须先进入知识库网页“收件箱 → 待确认”；只有用户在网页点击确认后才成为正式知识。'
   ].join('\n');
   fs.writeFileSync(path.join(root, 'README.md'), summary, 'utf8');
   return { output_dir: root, manifest };
