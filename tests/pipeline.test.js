@@ -13,8 +13,12 @@ test('mixed input routes separately and preserves exact RAW', () => {
   const store = temp();
   const r = ingest({ store, bytes: mixed, annotations });
   assert.deepEqual(r.run.assets.map(a => a.type), ['knowledge', 'todo', 'idea', 'copy']);
+  assert.equal(r.run.assets[0].source_identity, 'unknown');
+  assert.equal(r.run.assets[0].verification_status, 'unverified');
+  assert.deepEqual(r.run.assets[0].topic_tags, []);
   assert.equal(r.run.claims.length, 1);
   assert.equal(r.run.themes.length, 1);
+  assert.deepEqual(r.run.themes[0].primary_family_ids, r.run.themes[0].family_ids);
   assert.equal(r.run.canonical.length, 0);
   assert.equal(r.run.proposals[0].status, 'pending_human_review');
   assert.deepEqual(fs.readFileSync(r.raw_path), mixed);
@@ -83,5 +87,34 @@ test('opposing knowledge remains separate with a suggested contradiction', () =>
   assert.equal(r.run.relations[0].status, 'suggested');
   assert.equal(r.run.proposals[0].status, 'pending_human_review');
   assert.equal(r.run.canonical.length, 0);
+  fs.rmSync(store, { recursive: true, force: true });
+});
+
+
+test('one Family has one primary Theme and can be cross-referenced by another Theme', () => {
+  const store = temp();
+  const bytes = Buffer.from('知识A。知识B。');
+  const r = ingest({ store, bytes, annotations: {
+    parts: [
+      { quote: '知识A。', type: 'knowledge', source_identity: 'user_view', verification_status: 'user_verified',
+        topic_tags: ['内容', '知识管理'], family: '复用判断',
+        themes: ['知识应用', '内容生产'], primary_theme: '知识应用',
+        central_question: '一条知识如何在多个真实问题中被复用？', inclusion: '知识复用', exclusion: '无关内容' },
+      { quote: '知识B。', type: 'knowledge', source_identity: 'project_practice', verification_status: 'project_verified',
+        topic_tags: ['内容'], family: '内容判断',
+        theme: '内容生产', central_question: '内容生产如何调用已有知识？', inclusion: '内容生产', exclusion: '无关内容' }
+    ],
+    relations: [],
+    proposals: [{ text: '跨主题复用应保留一个主归属，并通过关系引用其它问题域。', claim_parts: [0, 1] }]
+  }});
+  const a = r.run.families.find(x => x.key === '复用判断');
+  const primary = r.run.themes.find(x => x.name === '知识应用');
+  const secondary = r.run.themes.find(x => x.name === '内容生产');
+  assert.ok(primary.primary_family_ids.includes(a.id));
+  assert.ok(primary.family_ids.includes(a.id));
+  assert.ok(secondary.family_ids.includes(a.id));
+  assert.ok(!secondary.primary_family_ids.includes(a.id));
+  const primaryCount = r.run.themes.flatMap(x => x.primary_family_ids).filter(x => x === a.id).length;
+  assert.equal(primaryCount, 1);
   fs.rmSync(store, { recursive: true, force: true });
 });
