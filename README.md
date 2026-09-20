@@ -1,8 +1,8 @@
-# 阿星知识库智能整理系统 v0.7.0
+# 阿星知识库智能整理系统 v0.7.1
 
 这是一个单总控、决策优先、可追溯、多路交付的个人知识整理与知识蒸馏工作流。
 
-v0.7.0 在 v0.6.x 的治理与交付能力上，重点修复真实知识库整理中暴露的分类问题：来源身份与未来用途混在同一分类轴、Theme 过度压缩、知识被迫单主题归属。现在 Router 使用多轴资产模型，Theme 使用“一个主归属 + 多个跨主题引用”的知识图谱结构。
+v0.7.1 在 v0.7.0 的分类架构上新增“完整知识契约”：不仅要分对类，还要保证正式知识不会在蒸馏中被压成摘要。每条 Claim 必须明确去向，必要的 N点法/N步法、SOP、表格、清单、模板、框架与话术结构必须在正文展开；Proposal 进入待确认前还要通过独立知识完整性审计。
 
 ## 主流程
 
@@ -117,6 +117,23 @@ Claims 完成后自动生成 workflows/<wf_id>/governance/source-governance.json
 
 如果 start 时存在 user_brief，Distiller 后必须做目标覆盖审计。critical/high 目标如果完全 uncovered，Runtime 会阻止流程直接宣告成功。
 
+## 完整知识契约
+
+知识库的正式知识必须满足“正文自包含”：
+
+- 隐藏 Sources 后仍能独立学习和使用；
+- 每条 Theme Claim 都有明确去向，不能静默消失；
+- 进入正文或无损合并的 Claim 与 supporting_claim_ids 完全对应；
+- N点法/N步法、SOP、表格、清单、模板、框架、模型、公式和话术结构会被单独识别；
+- 只要这些结构对当前 Theme 必要，就必须在正文展开，不能只留下“参考 XX / 详见来源”；
+- 允许去重和重组，但不能把完整方法压成几个泛化名词。
+
+Proposal 阶段会生成 `knowledge-completeness-audit.json`。审计把 Sources 视为不可见，只检查 Proposal 本文是否足够完整。缺 Claim、缺必要结构或存在“引用代替正文”时，Runtime 会阻止候选进入待确认。
+
+Delivery Bundle 会额外输出：
+
+`14_知识完整性审计.json`
+
 ## Skill 晋级审计
 
 每一条 Canonical 都必须得到一个结论：
@@ -177,7 +194,7 @@ npm test
 npm run test:v063
 ~~~
 
-v0.7 回归在原有治理测试上新增：多轴资产字段、来源身份进入治理、Family 主 Theme 唯一、跨主题引用不复制知识；原有回归继续覆盖：rollback 后无需手改状态即可继续；非 Proposal Gate 不能签 AI 自由文本；空 Skill candidates 必须有逐条晋级审计；todo/memo/copy/idea 等进入最终交付；Formal Skill 必须真正生成 SKILL.md；AgentRuntime 使用 v0.6.3 正式入口。
+v0.7.1 回归在原有治理测试上新增：Claim 全量去向、必要方法必须展开、引用不能代替正文、卖点表 + 九点归一完整性回归；同时保留 v0.7 的多轴分类与 Theme 图谱测试。原有回归继续覆盖：rollback 后无需手改状态即可继续；非 Proposal Gate 不能签 AI 自由文本；空 Skill candidates 必须有逐条晋级审计；todo/memo/copy/idea 等进入最终交付；Formal Skill 必须真正生成 SKILL.md；AgentRuntime 使用 v0.7.1 协议入口。
 
 GitHub Actions 会在 main push 和 PR 时自动执行测试。
 
