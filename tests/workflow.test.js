@@ -117,6 +117,77 @@ test('Theme graph requires exactly one primary Theme per Family', () => {
   cleanup(store);
 });
 
+test('full-knowledge contract rejects silent Claim loss and reference-only named methods', () => {
+  const store = temp();
+  const source = Buffer.from('卖点表包含专业、人品、性价比、口碑、价格、服务、质量、效率、稀缺、方便、实力、附加值、体验感、生意好、环境、干净卫生。\n九点归一塑造法包含九种具体塑造方式，并配有五步成交法。');
+  const service = new WorkflowService(store, { reviewerSecret: secret });
+  const started = service.start({ bytes: source, annotations: {
+    parts: [
+      { quote: '卖点表包含专业、人品、性价比、口碑、价格、服务、质量、效率、稀缺、方便、实力、附加值、体验感、生意好、环境、干净卫生。',
+        type: 'knowledge', family: '卖点表', theme: '直播产品塑造', central_question: '直播里怎样完整塑造产品价值？',
+        inclusion: '产品卖点与价值塑造方法', exclusion: '无关直播运营' },
+      { quote: '九点归一塑造法包含九种具体塑造方式，并配有五步成交法。',
+        type: 'knowledge', family: '九点归一', theme: '直播产品塑造', central_question: '直播里怎样完整塑造产品价值？',
+        inclusion: '产品卖点与价值塑造方法', exclusion: '无关直播运营' }
+    ],
+    relations: [],
+    proposals: [{ text: '完整直播产品塑造知识。', claim_parts: [0, 1] }]
+  }});
+  const runId = started.run_id, x = started.suggestion;
+  service.submit(runId, 'router', { assets: x.assets, risk_flags: [] });
+  service.submit(runId, 'atomicizer', { atoms: x.atoms });
+  service.submit(runId, 'claims', { claims: x.claims });
+  service.submit(runId, 'family_builder', { families: x.families });
+  service.submit(runId, 'theme_builder', { themes: x.themes, major_change: 'none' });
+  service.submit(runId, 'reconciler', { relations: [], version_judgement: false });
+
+  assert.throws(() => service.submit(runId, 'distiller', { distillations: [{
+    id: 'dist_live', theme_id: x.themes[0].id,
+    supporting_claim_ids: [x.claims[0].id],
+    claim_dispositions: [{
+      claim_id: x.claims[0].id, treatment: 'included', reason: '写入正文', destination: null
+    }],
+    named_structures: [],
+    self_contained: true,
+    text: '直播产品塑造可以参考卖点表和九点归一。',
+    status: 'provisional'
+  }] }), /每条 Claim 都必须有明确去向/);
+
+  assert.throws(() => service.retry(runId, 'distiller', { distillations: [{
+    id: 'dist_live', theme_id: x.themes[0].id,
+    supporting_claim_ids: x.claims.map(c => c.id),
+    claim_dispositions: x.claims.map(c => ({
+      claim_id: c.id, treatment: 'included', reason: '写入正文', destination: null
+    })),
+    named_structures: [{
+      name: '九点归一塑造法', kind: 'method', source_claim_ids: [x.claims[1].id],
+      required_for_theme: true, treatment: 'cross_referenced', reason: '只写名称，未展开'
+    }],
+    self_contained: true,
+    text: '直播产品塑造可以参考卖点表和九点归一。',
+    status: 'provisional'
+  }] }), /必须在正文展开/);
+
+  const ok = service.retry(runId, 'distiller', { distillations: [{
+    id: 'dist_live', theme_id: x.themes[0].id,
+    supporting_claim_ids: x.claims.map(c => c.id),
+    claim_dispositions: x.claims.map(c => ({
+      claim_id: c.id, treatment: 'included', reason: '完整写入正文', destination: null
+    })),
+    named_structures: [
+      { name: '卖点表', kind: 'table', source_claim_ids: [x.claims[0].id],
+        required_for_theme: true, treatment: 'expanded_in_text', reason: '当前知识必须保留完整卖点分类' },
+      { name: '九点归一塑造法', kind: 'method', source_claim_ids: [x.claims[1].id],
+        required_for_theme: true, treatment: 'expanded_in_text', reason: '当前知识必须保留具体方法及五步成交法' }
+    ],
+    self_contained: true,
+    text: '正文完整展开卖点表的全部分类，并展开九点归一塑造法与五步成交法。',
+    status: 'provisional'
+  }] });
+  assert.equal(ok.state.stages.distiller.status, 'completed');
+  cleanup(store);
+});
+
 test('RAW cannot be overwritten through the service or same-content intake', () => {
   const store = temp();
   const { service, result } = started(store);
