@@ -85,6 +85,30 @@ function validateCoverageAudit(userBrief, audit) {
   assert(blocked.length === 0, `关键目标未覆盖: ${blocked.map(x => x.goal).join('；')}`);
 }
 
+function validateKnowledgeCompletenessAudit(proposals, audit) {
+  assert(audit && Array.isArray(audit.items), 'proposal 必须附带知识完整性审计');
+  const proposalIds = proposals.map(x => x.id);
+  const auditIds = audit.items.map(x => x.proposal_id);
+  assert(new Set(auditIds).size === auditIds.length, '知识完整性审计 proposal_id 重复');
+  assert(proposalIds.length === auditIds.length && proposalIds.every(id => auditIds.includes(id)),
+    '知识完整性审计必须逐条覆盖全部 Proposal');
+
+  for (const item of audit.items) {
+    assert(['pass','revise'].includes(item.verdict), '知识完整性审计 verdict 非法');
+    assert(typeof item.self_contained === 'boolean', '知识完整性审计缺 self_contained');
+    assert(Array.isArray(item.missing_claim_ids), '知识完整性审计缺 missing_claim_ids');
+    assert(Array.isArray(item.missing_structures), '知识完整性审计缺 missing_structures');
+    assert(Array.isArray(item.reference_only_gaps), '知识完整性审计缺 reference_only_gaps');
+    assert(typeof item.reason === 'string' && item.reason.trim(), '知识完整性审计缺 reason');
+    assert(item.verdict === 'pass' && item.self_contained === true
+      && item.missing_claim_ids.length === 0
+      && item.missing_structures.length === 0
+      && item.reference_only_gaps.length === 0,
+      `知识候选不完整，必须返工后再进入待确认: ${item.proposal_id}｜${item.reason}`);
+  }
+}
+
+
 export class WorkflowService extends LegacyWorkflowService {
   invalidate(state, stage, reason) {
     const start = STAGES.indexOf(stage);
@@ -141,6 +165,7 @@ export class WorkflowService extends LegacyWorkflowService {
         validatePromotionAudit(canonicalIds, options.promotionAudit, data.candidates ?? []);
       }
       if (stage === 'distiller') validateCoverageAudit(stateBefore.user_brief, options.coverageAudit);
+      if (stage === 'proposal') validateKnowledgeCompletenessAudit(data.proposals ?? [], options.completenessAudit);
     } catch (error) {
       // 治理 sidecar 也是正式阶段契约的一部分。缺失/不完整时应像 Schema 失败一样
       // 留下 failed 状态与 AUDIT，这样 retry 可以正常重做，而不是停在半失败状态。
@@ -154,6 +179,8 @@ export class WorkflowService extends LegacyWorkflowService {
     const result = super.submit(runId, stage, data, options);
     if (stage === 'claims') this.writeSourceGovernance(runId, data.claims);
     if (stage === 'distiller' && options.coverageAudit) this.writeGovernance(runId, 'coverage-audit.json', options.coverageAudit);
+    if (stage === 'proposal' && options.completenessAudit)
+      this.writeGovernance(runId, 'knowledge-completeness-audit.json', options.completenessAudit);
     if (stage === 'skill_candidate' && options.promotionAudit)
       this.writeGovernance(runId, 'skill-promotion-audit.json', options.promotionAudit);
 
@@ -173,7 +200,7 @@ export class WorkflowService extends LegacyWorkflowService {
     const dir = path.join(this.runDir(runId), 'governance');
     fs.mkdirSync(dir, { recursive: true });
     const file = path.join(dir, name);
-    const bytes = JSON.stringify({ schema_version: '0.7.0', run_id: runId, generated_at: new Date().toISOString(), ...data }, null, 2);
+    const bytes = JSON.stringify({ schema_version: '0.7.1', run_id: runId, generated_at: new Date().toISOString(), ...data }, null, 2);
     fs.writeFileSync(file, bytes, 'utf8');
     return file;
   }
@@ -226,7 +253,7 @@ export class WorkflowService extends LegacyWorkflowService {
         generated_at: new Date().toISOString()
       }, null, 2), 'utf8');
       fs.writeFileSync(path.join(dir, 'test-prompts.json'), JSON.stringify({
-        schema_version: '0.7.0',
+        schema_version: '0.7.1',
         evaluation_id: evaluation.id,
         test_case_ids: evaluation.test_case_ids,
         note: '本文件保存评测 case ID 与发布关联；真实输入/输出仍在 evaluation-outputs 与 evaluator Artifact 中。'
