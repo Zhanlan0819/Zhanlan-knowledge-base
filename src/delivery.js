@@ -75,12 +75,15 @@ export function exportDeliveryBundle(service, runId, { outputDir = null } = {}) 
   const promotionAuditPath = path.join(service.runDir(runId), 'governance', 'skill-promotion-audit.json');
   const coverageAuditPath = path.join(service.runDir(runId), 'governance', 'coverage-audit.json');
   const sourceGovernancePath = path.join(service.runDir(runId), 'governance', 'source-governance.json');
+  const completenessAuditPath = path.join(service.runDir(runId), 'governance', 'knowledge-completeness-audit.json');
   const promotionAudit = fs.existsSync(promotionAuditPath) ? JSON.parse(fs.readFileSync(promotionAuditPath, 'utf8')) : null;
   const coverageAudit = fs.existsSync(coverageAuditPath) ? JSON.parse(fs.readFileSync(coverageAuditPath, 'utf8')) : null;
   const sourceGovernance = fs.existsSync(sourceGovernancePath) ? JSON.parse(fs.readFileSync(sourceGovernancePath, 'utf8')) : null;
+  const completenessAudit = fs.existsSync(completenessAuditPath) ? JSON.parse(fs.readFileSync(completenessAuditPath, 'utf8')) : null;
   if (promotionAudit) writeJson(path.join(root, '11_Skill晋级审计.json'), promotionAudit);
   if (coverageAudit) writeJson(path.join(root, '12_目标覆盖审计.json'), coverageAudit);
   if (sourceGovernance) writeJson(path.join(root, '13_来源治理.json'), sourceGovernance);
+  if (completenessAudit) writeJson(path.join(root, '14_知识完整性审计.json'), completenessAudit);
 
   const formalRoot = path.join(service.store, 'formal-skills');
   const skillsOut = path.join(root, 'skills');
@@ -118,7 +121,7 @@ export function exportDeliveryBundle(service, runId, { outputDir = null } = {}) 
     unorganized: byType.unorganized?.length ?? 0
   };
   const manifest = {
-    schema_version: '0.6.4',
+    schema_version: '0.7.1',
     run_id: runId,
     status: state.status,
     generated_at: new Date().toISOString(),
