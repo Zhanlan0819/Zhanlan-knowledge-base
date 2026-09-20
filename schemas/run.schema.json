@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.invalid/kb/run.schema.json",
-  "title": "Knowledge System Runtime Types v0.7.0",
+  "title": "Knowledge System Runtime Types v0.7.1",
   "$defs": {
     "anchor": {
       "type": "object",
