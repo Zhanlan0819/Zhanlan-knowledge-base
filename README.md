@@ -1,15 +1,15 @@
-# 阿星知识库智能整理系统 v0.6.3
+# 阿星知识库智能整理系统 v0.7.0
 
 这是一个单总控、决策优先、可追溯、多路交付的个人知识整理与知识蒸馏工作流。
 
-v0.6.3 来自一次真实知识库端到端运行复盘，重点解决五类问题：非知识资产只分流不交付、审批命令过多、rollback 后状态机卡死、Skill 候选空数组逃过晋级审计、正式 Skill 只有发布记录没有可安装文件。
+v0.7.0 在 v0.6.x 的治理与交付能力上，重点修复真实知识库整理中暴露的分类问题：来源身份与未来用途混在同一分类轴、Theme 过度压缩、知识被迫单主题归属。现在 Router 使用多轴资产模型，Theme 使用“一个主归属 + 多个跨主题引用”的知识图谱结构。
 
 ## 主流程
 
 ~~~text
 RAW
-→ Router：9 类资产分流
-├─ knowledge → 原子 → Claim → Family → Theme → Relation → Distillation → Proposal → Canonical
+→ Router：资产类型 × 来源身份 × 主题标签 × 验证状态
+├─ knowledge → 原子 → Claim → Family → Theme 图谱（主归属 + 跨主题引用） → Relation → Distillation → Proposal → Canonical
 ├─ todo
 ├─ memo
 ├─ copy
@@ -31,12 +31,14 @@ Canonical
 → Delivery Bundle
 ~~~
 
-Router 支持 knowledge、case、copy、idea、todo、memo、project、external、unorganized 九类。外部资料、案例和项目是来源身份，不是知识加工终点；有可复用方法时可以保留原来源资产，同时抽取 knowledge。
+Router 的 `type` 仍支持 knowledge、case、copy、idea、todo、memo、project、external、unorganized 九条交付通道，但同时强制独立记录 `source_identity`、`topic_tags`、`verification_status`。因此“外部课程里的知识”可以是 `type=knowledge` + `source_identity=external_course`，不再被迫在 knowledge 和 external 之间二选一。
+
+Theme 不再追求“越少越好”。每个 Family 只有一个主 Theme，但可以被其它 Theme 次级引用；这样一条知识只保存一次，却能服务多个真实问题。
 
 ## Runtime 分层
 
 - src/workflow.js：基础 14 阶段、Schema 链接、Artifact、审计与持久化兼容核心。
-- src/workflow-v063.js：v0.6.3 正式保护层，负责状态恢复、治理审计、真实 Skill 发布和多路交付。
+- src/workflow-v063.js：历史文件名，当前承载 v0.7 正式保护层，负责状态恢复、治理审计、真实 Skill 发布和多路交付。
 - src/agent-runtime.js：模型调用与确定性后处理。
 - src/review-server.js：本地审核网页。
 - src/delivery.js：最终交付包生成。
@@ -175,7 +177,7 @@ npm test
 npm run test:v063
 ~~~
 
-v0.6.3 回归专门覆盖：rollback 后无需手改状态即可继续；非 Proposal Gate 不能签 AI 自由文本；空 Skill candidates 必须有逐条晋级审计；todo/memo/copy/idea 等进入最终交付；Formal Skill 必须真正生成 SKILL.md；AgentRuntime 使用 v0.6.3 正式入口。
+v0.7 回归在原有治理测试上新增：多轴资产字段、来源身份进入治理、Family 主 Theme 唯一、跨主题引用不复制知识；原有回归继续覆盖：rollback 后无需手改状态即可继续；非 Proposal Gate 不能签 AI 自由文本；空 Skill candidates 必须有逐条晋级审计；todo/memo/copy/idea 等进入最终交付；Formal Skill 必须真正生成 SKILL.md；AgentRuntime 使用 v0.6.3 正式入口。
 
 GitHub Actions 会在 main push 和 PR 时自动执行测试。
 
