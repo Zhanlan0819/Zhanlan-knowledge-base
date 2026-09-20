@@ -335,6 +335,37 @@ export class WorkflowService {
         const theme = themes.find(t => t.id === item.theme_id);
         const allowed = new Set(families.filter(f => theme?.family_ids.includes(f.id)).flatMap(f => f.claim_ids));
         assert(theme && item.supporting_claim_ids.every(x => allowed.has(x)), 'distiller: 证据不属于对应 Theme');
+
+        const dispositions = item.claim_dispositions ?? [];
+        const dispositionIds = dispositions.map(x => x.claim_id);
+        assert(unique(dispositionIds), 'distiller: 同一 Claim 不能重复声明去向');
+        assert(dispositionIds.length === allowed.size && dispositionIds.every(x => allowed.has(x)),
+          'distiller: Theme 内每条 Claim 都必须有明确去向，不能静默丢失');
+
+        const included = new Set(dispositions
+          .filter(x => ['included', 'merged_without_loss'].includes(x.treatment))
+          .map(x => x.claim_id));
+        assert(item.supporting_claim_ids.length === included.size
+          && item.supporting_claim_ids.every(x => included.has(x)),
+          'distiller: supporting_claim_ids 必须与 included/merged_without_loss 完全一致');
+
+        for (const d of dispositions) {
+          assert(typeof d.reason === 'string' && d.reason.trim(), 'distiller: Claim 去向必须说明原因');
+          if (d.treatment === 'cross_referenced')
+            assert(typeof d.destination === 'string' && d.destination.trim(),
+              'distiller: cross_referenced Claim 必须写明目标知识/主题');
+        }
+
+        for (const structure of item.named_structures ?? []) {
+          assert(structure.source_claim_ids.every(x => allowed.has(x)), 'distiller: 高密度结构引用了 Theme 外 Claim');
+          if (structure.required_for_theme) {
+            assert(structure.treatment === 'expanded_in_text',
+              `distiller: 必要方法/表格/SOP 必须在正文展开，不能只引用：${structure.name}`);
+            assert(structure.source_claim_ids.every(id => included.has(id)),
+              `distiller: 必要结构的来源 Claim 必须实际进入正文：${structure.name}`);
+          }
+        }
+        assert(item.self_contained === true, 'distiller: 正文必须在隐藏 Sources 后仍可独立理解和使用');
       }
     }
     if (stage === 'proposal') {
