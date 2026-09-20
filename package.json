@@ -1,9 +1,9 @@
 {
   "name": "axing-knowledge-system",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "private": true,
   "type": "module",
-  "description": "多轴分类、知识图谱主题归属、决策优先、可追溯多路交付的个人知识整理工作流。",
+  "description": "多轴分类、知识图谱主题归属、完整知识契约、可追溯多路交付的个人知识整理工作流。",
   "engines": {
     "node": ">=20"
   },
@@ -11,7 +11,8 @@
     "test": "node --test tests/*.test.js",
     "demo": "node src/workflow-cli.js demo --store .tmp/demo --input fixtures/mixed.txt --annotations fixtures/mixed.annotations.json",
     "test:v063": "node --test tests/v063-runtime.test.js",
-    "test:v070": "node --test tests/pipeline.test.js tests/workflow.test.js tests/v063-runtime.test.js"
+    "test:v070": "node --test tests/pipeline.test.js tests/workflow.test.js tests/v063-runtime.test.js",
+    "test:v071": "node --test tests/workflow.test.js tests/v063-runtime.test.js tests/agent-runtime.test.js"
   },
   "dependencies": {
     "ajv": "^8.20.0"
