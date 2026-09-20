@@ -3,6 +3,10 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 export const ASSET_TYPES = ['knowledge', 'case', 'copy', 'idea', 'todo', 'memo', 'project', 'external', 'unorganized'];
+export const SOURCE_IDENTITIES = ['user_experience', 'user_view', 'project_practice', 'client_material',
+  'external_course', 'external_reference', 'ai_inference', 'mixed', 'unknown'];
+export const VERIFICATION_STATUSES = ['not_applicable', 'unverified', 'user_verified', 'project_verified',
+  'externally_verified', 'conflicted'];
 export const RELATIONS = ['REPEATS', 'REFINES', 'EXTENDS', 'CONTRADICTS', 'RETRACTS', 'ORIGIN', 'APPLICATION'];
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const id = (prefix, value) => `${prefix}_${sha(value).slice(0, 16)}`;
@@ -43,8 +47,17 @@ export function ingest({ store, bytes, annotations = {} }) {
     assert(ASSET_TYPES.includes(part.type), `非法资产类型: ${part.type}`);
     const anchor = findAnchor(text, part.quote, part.occurrence);
     const assetId = id('asset', `${rawId}:${index}:${part.type}:${anchor.start}`);
+    const sourceIdentity = part.source_identity ?? 'unknown';
+    assert(SOURCE_IDENTITIES.includes(sourceIdentity), `非法 source_identity: ${sourceIdentity}`);
+    const topicTags = Array.isArray(part.topic_tags)
+      ? [...new Set(part.topic_tags.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()))]
+      : [...new Set([part.parent_tag, part.child_tag].filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()))];
+    const verificationStatus = part.verification_status
+      ?? (['todo','memo','copy','idea','project','unorganized'].includes(part.type) ? 'not_applicable' : 'unverified');
+    assert(VERIFICATION_STATUSES.includes(verificationStatus), `非法 verification_status: ${verificationStatus}`);
     assets.push({ id: assetId, raw_id: rawId, type: part.type, anchor,
       parent_tag: part.parent_tag ?? null, child_tag: part.child_tag ?? null,
+      source_identity: sourceIdentity, topic_tags: topicTags, verification_status: verificationStatus,
       status: part.type === 'unorganized' ? 'unorganized' : 'provisional' });
     if (part.type !== 'knowledge') continue;
     const atomId = id('atom', assetId);
@@ -60,16 +73,31 @@ export function ingest({ store, bytes, annotations = {} }) {
     if (!familyMap.has(familyKey)) familyMap.set(familyKey, { id: id('family', familyKey), key: familyKey,
       claim_ids: [], status: part.family ? 'suggested_semantic_group' : 'exact_group' });
     familyMap.get(familyKey).claim_ids.push(claimId);
-    if (part.theme) {
-      assert(typeof part.theme === 'string', 'theme 必须是字符串');
-      if (!themeMap.has(part.theme)) themeMap.set(part.theme, { id: id('theme', part.theme), name: part.theme,
+    const themeNames = Array.isArray(part.themes) ? part.themes : (part.theme ? [part.theme] : []);
+    assert(themeNames.every(x => typeof x === 'string' && x.trim()), 'themes 必须是非空字符串数组');
+    const normalizedThemes = [...new Set(themeNames.map(x => x.trim()))];
+    const primaryTheme = part.primary_theme ?? normalizedThemes[0] ?? null;
+    if (primaryTheme) assert(normalizedThemes.includes(primaryTheme), 'primary_theme 必须包含在 themes/theme 中');
+    for (const themeName of normalizedThemes) {
+      if (!themeMap.has(themeName)) themeMap.set(themeName, { id: id('theme', themeName), name: themeName,
         central_question: part.central_question ?? null, inclusion: part.inclusion ?? null,
-        exclusion: part.exclusion ?? null, family_ids: [], status: 'suggested' });
-      themeMap.get(part.theme).family_ids.push(familyMap.get(familyKey).id);
+        exclusion: part.exclusion ?? null, family_ids: [], primary_family_ids: [], status: 'suggested' });
+      const theme = themeMap.get(themeName);
+      theme.family_ids.push(familyMap.get(familyKey).id);
+      if (themeName === primaryTheme) theme.primary_family_ids.push(familyMap.get(familyKey).id);
     }
   }
   families.push(...familyMap.values());
-  themes.push(...[...themeMap.values()].map(t => ({ ...t, family_ids: [...new Set(t.family_ids)] })));
+  themes.push(...[...themeMap.values()].map(t => ({ ...t,
+    family_ids: [...new Set(t.family_ids)],
+    primary_family_ids: [...new Set(t.primary_family_ids)]
+  })));
+  if (themes.length) {
+    const familyIds = families.map(f => f.id);
+    const primaryAssignments = themes.flatMap(t => t.primary_family_ids);
+    assert(familyIds.every(fid => primaryAssignments.filter(x => x === fid).length === 1),
+      '每个 Family 必须恰好有一个主 Theme；可同时作为次级引用出现在其它 Theme');
+  }
   for (const rel of annotations.relations ?? []) {
     assert(RELATIONS.includes(rel.type), `非法关系: ${rel.type}`);
     assert(Number.isInteger(rel.from) && Number.isInteger(rel.to) && rel.from !== rel.to,
