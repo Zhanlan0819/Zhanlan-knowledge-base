@@ -102,10 +102,7 @@ test('rollback rejection resets downstream to not_started and apply succeeds wit
     service.recordDecision(runId, { checkpoint: 'major_theme_change', decision: 'approved' },
       { actor: 'user_review_service' });
     service.submit(runId, 'reconciler', { relations: [], version_judgement: false });
-    service.submit(runId, 'distiller', { distillations: [{
-      id: 'dist_1', theme_id: s.themes[0].id, supporting_claim_ids: [s.claims[0].id],
-      text: s.proposals[0].text, status: 'provisional'
-    }] });
+    service.submit(runId, 'distiller', { distillations: [completeDistillation(s)] });
     service.submit(runId, 'proposal', { proposals: s.proposals }, { completenessAudit: passingCompletenessAudit(s.proposals) });
     service.recordDecision(runId, { checkpoint: 'canonical_proposal', proposalId: s.proposals[0].id, decision: 'approved' },
       { actor: 'user_review_service' });
