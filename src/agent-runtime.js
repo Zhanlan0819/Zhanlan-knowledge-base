@@ -69,7 +69,7 @@ export class AgentRuntime {
     const schema = readWorkflowSchema(this.projectRoot);
     const stageSchema = schema.$defs?.[stage] ?? null;
     const request = {
-      protocol: 'knowledge-stage-request/v0.6.3',
+      protocol: 'knowledge-stage-request/v0.7.0',
       run_id: runId,
       stage,
       stage_label_zh: stageLabel(stage),
@@ -87,6 +87,9 @@ export class AgentRuntime {
         '不得把 content-path-*、method-*、business-*、knowledge-*、organized-*、raw_*、wf_*、claim_* 等内部 ID 填进面向人的标题或说明字段。',
         '不得在语义文本中输出 external=外部资料、case=项目案例 这类中英对照机器说明。',
         ...(stage === 'router' ? [
+          '资产分类必须拆成四个维度：type=未来主要去向；source_identity=来源身份；topic_tags=多主题检索标签；verification_status=当前验证状态。不得再用一个 type 同时表达来源与用途。',
+          'source_identity 只能使用 Schema 枚举；无法确定时用 unknown。topic_tags 可以为空或多选，不能反过来决定 type。',
+          '没有额外证据时，知识/案例/外部资料的 verification_status 默认应保持 unverified；不要把“原文有锚点”误写成 externally_verified。',
           '外部资料、项目案例、项目方案首先表示来源/载体身份，不应自动成为知识加工终点。若其中包含可复用判断、方法、原则或案例结构，应保留原来源资产，同时对可复用的原文片段额外建立 knowledge 资产；允许不同类型资产锚点重叠。',
           '不要把整份外部资料直接改标为知识；只对真正可复用的具体片段建立知识资产，并保留来源边界。'
         ] : []),
@@ -95,7 +98,13 @@ export class AgentRuntime {
           '原子 anchor 必须是所属知识资产原文范围内的真实子片段；不得为了凑原子而改写证据原文。'
         ] : []),
         ...(stage === 'family_builder' ? [
-          '归组阶段重点是找真正表达同一核心判断的主张；同主题下的例子、步骤、条件、细化与应用不要为了压缩数量而误合并。'
+          '归组阶段重点是找真正表达同一核心判断的主张；同主题下的例子、步骤、条件、细化与应用不要为了压缩数量而误合并。',
+          'Family 表达语义同一性，不承担目录导航。不要为了减少 Family 数量或方便后续 Theme 而提前合并。'
+        ] : []),
+        ...(stage === 'theme_builder' ? [
+          'Theme 数量不是优化目标。一个 Theme 只能回答一个清晰中心问题；如果需要用“以及/同时/与/和”连接两个可独立回答的问题，优先拆分。',
+          '每个 Family 必须恰好出现在一个 Theme 的 primary_family_ids 中；同一 Family 可以同时出现在其它 Theme 的 family_ids 中作为次级引用。',
+          '不要复制 Family 来实现多主题归属；用主 Theme + 次级跨主题引用表达知识网络。'
         ] : []),
         ...(stage === 'reconciler' ? [
           '优先识别真正需要人工决策的冲突、撤回和版本变化；重复、细化、补充、来源、应用可以自动记录，不要把所有关系都升级为人工问题。'
@@ -203,7 +212,7 @@ export class AgentRuntime {
       instruction_path: instruction.path,
       instruction_sha256: instruction.sha256,
       model: this.modelAdapter.id ?? 'unknown-model-adapter',
-      runner: 'AgentRuntime/v0.6.3',
+      runner: 'AgentRuntime/v0.7.0',
       attempt_id: attemptId,
       context_sha256: sha(JSON.stringify(request.context))
     };
