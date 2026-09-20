@@ -31,7 +31,7 @@ test('AgentRuntime executes only the selected stage and stops at terminal state'
   const state = service.loadState(started.run_id);
   const artifact = service.artifact(state, 'router');
   assert.equal(artifact.provenance.model, 'fake-router-model');
-  assert.equal(artifact.provenance.runner, 'AgentRuntime/v0.7.0');
+  assert.equal(artifact.provenance.runner, 'AgentRuntime/v0.7.1');
   const delivery = path.join(store, 'deliveries', started.run_id, 'manifest.json');
   assert.equal(fs.existsSync(delivery), true);
   cleanup(store);
