@@ -1,9 +1,9 @@
 {
   "name": "axing-knowledge-system",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "private": true,
   "type": "module",
-  "description": "单总控、决策优先，带多路交付、本地审核面板与可安装 Skill 发布的个人知识整理工作流。",
+  "description": "单总控、决策优先，知识提案先进入站点待确认，再由用户确认入库的个人知识整理工作流。",
   "engines": {
     "node": ">=20"
   },
